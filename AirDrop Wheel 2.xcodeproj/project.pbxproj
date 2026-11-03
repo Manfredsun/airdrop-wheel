@@ -1,0 +1,216 @@
+// !$*UTF8*$!
+{
+	"archiveVersion" = "1";
+	"classes" = {
+	};
+	"objectVersion" = "56";
+	"objects" = {
+		"0243DE6283AFEB6EFDD2B1F3" = {
+			"buildActionMask" = "2147483647";
+			"files" = ("5B1E0549B16F551C098D7ADF");
+			"isa" = "PBXResourcesBuildPhase";
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"09AA38CEF3EA53936A20C858" = {
+			"buildSettings" = {
+				"CLANG_ENABLE_MODULES" = "YES";
+				"DEBUG_INFORMATION_FORMAT" = "dwarf";
+				"ENABLE_TESTABILITY" = "YES";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.0";
+				"SDKROOT" = "macosx";
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "DEBUG";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+				"SWIFT_STRICT_CONCURRENCY" = "targeted";
+				"SWIFT_VERSION" = "5.0";
+			};
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+		};
+		"0A3E27B8CA818264D75C8D81" = {
+			"children" = ("57E22DF2FCF18E685BEEF469");
+			"isa" = "PBXGroup";
+			"name" = "Products";
+			"sourceTree" = "<group>";
+		};
+		"0D6E4079E36703EBD37C0072" = {
+			"children" = ("53A4F7AEB01CE90928F09845", "B34E8BDF1850EC49F83CD20A", "6AE27F664CD0832AD1AAA396", "BE587C6FC5D417E1F9D10BE5", "B335630551682C19A781AFEB", "44B8EFA2CF96C72701E33BA6", "0A3E27B8CA818264D75C8D81");
+			"isa" = "PBXGroup";
+			"sourceTree" = "<group>";
+		};
+		"244210E48437B6556980A702" = {
+			"attributes" = {
+				"LastUpgradeCheck" = "2720";
+				"TargetAttributes" = {
+					"A172CEDCAE47474B615C54D5" = {
+						"CreatedOnToolsVersion" = "27.2";
+					};
+				};
+			};
+			"buildConfigurationList" = "4F9780D05AFB226691EE6E8A";
+			"compatibilityVersion" = "Xcode 14.0";
+			"developmentRegion" = "zh-Hant";
+			"isa" = "PBXProject";
+			"knownRegions" = ("zh-Hant", "en", "Base");
+			"mainGroup" = "0D6E4079E36703EBD37C0072";
+			"productRefGroup" = "0A3E27B8CA818264D75C8D81";
+			"projectDirPath" = "";
+			"projectRoot" = "";
+			"targets" = ("A172CEDCAE47474B615C54D5");
+		};
+		"2C51B24F1BD0E37CCD3A85CD" = {
+			"buildSettings" = {
+				"CLANG_ENABLE_MODULES" = "YES";
+				"DEBUG_INFORMATION_FORMAT" = "dwarf-with-dsym";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.0";
+				"SDKROOT" = "macosx";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+				"SWIFT_STRICT_CONCURRENCY" = "targeted";
+				"SWIFT_VERSION" = "5.0";
+			};
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+		};
+		"44B8EFA2CF96C72701E33BA6" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "folder.assetcatalog";
+			"path" = "App/Resources/Assets.xcassets";
+			"sourceTree" = "<group>";
+		};
+		"466D20FBCECD50304EB1AEB7" = {
+			"buildSettings" = {
+				"ASSETCATALOG_COMPILER_APPICON_NAME" = "AppIcon";
+				"CLANG_ENABLE_MODULES" = "YES";
+				"CODE_SIGN_IDENTITY" = "-";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CURRENT_PROJECT_VERSION" = "1";
+				"DEBUG_INFORMATION_FORMAT" = "dwarf-with-dsym";
+				"ENABLE_APP_SANDBOX" = "NO";
+				"ENABLE_HARDENED_RUNTIME" = "NO";
+				"GENERATE_INFOPLIST_FILE" = "NO";
+				"INFOPLIST_FILE" = "Config/Info.plist";
+				"LD_RUNPATH_SEARCH_PATHS" = "$(inherited) @executable_path/../Frameworks";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.0";
+				"MARKETING_VERSION" = "0.1.0";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "app.airdropwheel2.macos";
+				"PRODUCT_NAME" = "AirDrop Wheel 2";
+				"SDKROOT" = "macosx";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+				"SWIFT_STRICT_CONCURRENCY" = "targeted";
+				"SWIFT_VERSION" = "5.0";
+			};
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+		};
+		"4F9780D05AFB226691EE6E8A" = {
+			"buildConfigurations" = ("09AA38CEF3EA53936A20C858", "2C51B24F1BD0E37CCD3A85CD");
+			"defaultConfigurationIsVisible" = "0";
+			"defaultConfigurationName" = "Debug";
+			"isa" = "XCConfigurationList";
+		};
+		"53A4F7AEB01CE90928F09845" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "App/Sources/AppDelegate.swift";
+			"sourceTree" = "<group>";
+		};
+		"57E22DF2FCF18E685BEEF469" = {
+			"explicitFileType" = "wrapper.application";
+			"isa" = "PBXFileReference";
+			"path" = "AirDrop Wheel 2.app";
+			"sourceTree" = "BUILT_PRODUCTS_DIR";
+		};
+		"5B1E0549B16F551C098D7ADF" = {
+			"fileRef" = "44B8EFA2CF96C72701E33BA6";
+			"isa" = "PBXBuildFile";
+		};
+		"6AE27F664CD0832AD1AAA396" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text";
+			"path" = "Config/Info.plist";
+			"sourceTree" = "<group>";
+		};
+		"6ED3F51C06D82728505F4355" = {
+			"buildConfigurations" = ("702A057C813F700DC90695F1", "466D20FBCECD50304EB1AEB7");
+			"defaultConfigurationIsVisible" = "0";
+			"defaultConfigurationName" = "Debug";
+			"isa" = "XCConfigurationList";
+		};
+		"6F77D3785F2EEC1E72A218DC" = {
+			"buildActionMask" = "2147483647";
+			"files" = ("F351CC0E4BF2CFAE0B0ABF7B", "D3A5176C8FC6D6C79C4C20D9");
+			"isa" = "PBXSourcesBuildPhase";
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"702A057C813F700DC90695F1" = {
+			"buildSettings" = {
+				"ASSETCATALOG_COMPILER_APPICON_NAME" = "AppIcon";
+				"CLANG_ENABLE_MODULES" = "YES";
+				"CODE_SIGN_IDENTITY" = "-";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CURRENT_PROJECT_VERSION" = "1";
+				"DEBUG_INFORMATION_FORMAT" = "dwarf";
+				"ENABLE_APP_SANDBOX" = "NO";
+				"ENABLE_HARDENED_RUNTIME" = "NO";
+				"ENABLE_TESTABILITY" = "YES";
+				"GENERATE_INFOPLIST_FILE" = "NO";
+				"INFOPLIST_FILE" = "Config/Info.plist";
+				"LD_RUNPATH_SEARCH_PATHS" = "$(inherited) @executable_path/../Frameworks";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.0";
+				"MARKETING_VERSION" = "0.1.0";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "app.airdropwheel2.macos";
+				"PRODUCT_NAME" = "AirDrop Wheel 2";
+				"SDKROOT" = "macosx";
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "DEBUG";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+				"SWIFT_STRICT_CONCURRENCY" = "targeted";
+				"SWIFT_VERSION" = "5.0";
+			};
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+		};
+		"A172CEDCAE47474B615C54D5" = {
+			"buildConfigurationList" = "6ED3F51C06D82728505F4355";
+			"buildPhases" = ("6F77D3785F2EEC1E72A218DC", "F3DC3E91A8687A5CB81076F4", "0243DE6283AFEB6EFDD2B1F3");
+			"buildRules" = ();
+			"dependencies" = ();
+			"isa" = "PBXNativeTarget";
+			"name" = "AirDrop Wheel 2";
+			"productName" = "AirDrop Wheel 2";
+			"productReference" = "57E22DF2FCF18E685BEEF469";
+			"productType" = "com.apple.product-type.application";
+		};
+		"B335630551682C19A781AFEB" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text";
+			"path" = "README.md";
+			"sourceTree" = "<group>";
+		};
+		"B34E8BDF1850EC49F83CD20A" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "App/Sources/main.swift";
+			"sourceTree" = "<group>";
+		};
+		"BE587C6FC5D417E1F9D10BE5" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text";
+			"path" = "design.md";
+			"sourceTree" = "<group>";
+		};
+		"D3A5176C8FC6D6C79C4C20D9" = {
+			"fileRef" = "B34E8BDF1850EC49F83CD20A";
+			"isa" = "PBXBuildFile";
+		};
+		"F351CC0E4BF2CFAE0B0ABF7B" = {
+			"fileRef" = "53A4F7AEB01CE90928F09845";
+			"isa" = "PBXBuildFile";
+		};
+		"F3DC3E91A8687A5CB81076F4" = {
+			"buildActionMask" = "2147483647";
+			"files" = ();
+			"isa" = "PBXFrameworksBuildPhase";
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+	};
+	"rootObject" = "244210E48437B6556980A702";
+}
