@@ -28,6 +28,14 @@ public struct Recipient: Identifiable, Sendable, Equatable {
     public let certificate: Data
     public let lastSeen: Date
 
+    public var iconName: String {
+        let m = modelName.lowercased()
+        if m.contains("imac") { return "desktopcomputer" }
+        if m.contains("mini") || m.contains("studio") || m.contains("mac pro") { return "macmini" }
+        if m.contains("macbook") || m.contains("laptop") || m.contains("notebook") || m.contains("筆電") { return "macbook" }
+        return kind.systemSymbolName
+    }
+
     public static func == (lhs: Recipient, rhs: Recipient) -> Bool {
         lhs.id == rhs.id
     }
@@ -38,8 +46,88 @@ private final class DiscoveryCertBox: @unchecked Sendable {
 }
 
 private final class AirDropWakeDelegate: NSObject {
+    var onPeopleChanged: (([NSObject]) -> Void)?
+
     @objc func browserWillChangePeople(_ b: AnyObject) {}
-    @objc func browserDidChangePeople(_ b: AnyObject) {}
+    @objc func browserDidChangePeople(_ b: AnyObject) {
+        if let people = b.value(forKey: "people") as? [NSObject] {
+            onPeopleChanged?(people)
+        }
+    }
+}
+
+public enum DeviceClassifier {
+    public static func classify(
+        computerName: String,
+        rawModel: String = "",
+        knownModel: String? = nil,
+        mediaCapabilities: Any? = nil
+    ) -> (kind: DeviceKind, modelName: String) {
+        let nameLower = computerName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawLower = rawModel.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let knownLower = (knownModel ?? "").lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // 1. Apple SFAirDropNode known model match (highest fidelity from system Sharing framework)
+        if !knownLower.isEmpty {
+            if knownLower.contains("mac") || knownLower.contains("imac") || knownLower.contains("book") {
+                return (.mac, knownModel ?? "Mac")
+            } else if knownLower.contains("ipad") {
+                return (.iPad, knownModel ?? "iPad")
+            } else if knownLower.contains("iphone") {
+                return (.iPhone, knownModel ?? "iPhone")
+            }
+        }
+
+        // 2. Explicit rawModel from protocol response
+        if !rawLower.isEmpty {
+            if rawLower.contains("mac") || rawLower.contains("imac") || rawLower.contains("book") {
+                return (.mac, rawModel)
+            } else if rawLower.contains("ipad") {
+                return (.iPad, rawModel)
+            } else if rawLower.contains("iphone") {
+                return (.iPhone, rawModel)
+            }
+        }
+
+        // 3. Multi-lingual keywords for Mac / Laptops / Desktops
+        if nameLower.contains("macbook pro") || nameLower.contains("mbp") {
+            return (.mac, "MacBook Pro")
+        } else if nameLower.contains("macbook air") || nameLower.contains("mba") {
+            return (.mac, "MacBook Air")
+        } else if nameLower.contains("mac mini") {
+            return (.mac, "Mac mini")
+        } else if nameLower.contains("mac studio") {
+            return (.mac, "Mac Studio")
+        } else if nameLower.contains("mac pro") {
+            return (.mac, "Mac Pro")
+        } else if nameLower.contains("imac") {
+            return (.mac, "iMac")
+        } else if nameLower.contains("macbook") || nameLower.contains("laptop") || nameLower.contains("notebook") || nameLower.contains("book") || nameLower.contains("筆電") || nameLower.contains("筆記型") {
+            return (.mac, "MacBook")
+        } else if nameLower.contains("mac") || nameLower.contains("電腦") || nameLower.contains("desktop") || nameLower.contains("pc") {
+            return (.mac, "Mac")
+        }
+
+        // 4. iPad keywords
+        if nameLower.contains("ipad pro") {
+            return (.iPad, "iPad Pro")
+        } else if nameLower.contains("ipad air") {
+            return (.iPad, "iPad Air")
+        } else if nameLower.contains("ipad mini") {
+            return (.iPad, "iPad mini")
+        } else if nameLower.contains("ipad") {
+            return (.iPad, "iPad")
+        }
+
+        // 5. iPhone keywords
+        if nameLower.contains("iphone") {
+            return (.iPhone, "iPhone")
+        }
+
+        // 6. Safe Neutral Default: If name is pure personal name (e.g. "Muffin"),
+        // DO NOT blindly guess iPhone! Return generic Apple Device.
+        return (.unknown, "Apple 裝置")
+    }
 }
 
 @MainActor
@@ -50,6 +138,7 @@ public final class LiveRecipientDiscovery: ObservableObject {
     private var browser: NWBrowser?
     private var wakeBrowser: NSObject?
     private var wakeDelegate: AirDropWakeDelegate?
+    private var nodeModelCache: [String: String] = [:]
     private var activeConnections: [NWEndpoint: NWConnection] = [:]
     private var knownCertificates: [NWEndpoint: Data] = [:]
     private var recipientMap: [NWEndpoint: Recipient] = [:]
@@ -104,6 +193,11 @@ public final class LiveRecipientDiscovery: ObservableObject {
         guard let cls = NSClassFromString("SFAirDropBrowser") as? NSObject.Type else { return }
         let instance = cls.init()
         let del = AirDropWakeDelegate()
+        del.onPeopleChanged = { [weak self] people in
+            Task { @MainActor in
+                self?.handleDiscoveredPeople(people)
+            }
+        }
         self.wakeDelegate = del
         instance.setValue(del, forKey: "delegate")
 
@@ -113,6 +207,53 @@ public final class LiveRecipientDiscovery: ObservableObject {
 
         wakeBrowser = instance
         _ = instance.perform(NSSelectorFromString("start"))
+    }
+
+    private func handleDiscoveredPeople(_ people: [NSObject]) {
+        var updated = false
+        for person in people {
+            let model = (person.value(forKey: "model") as? String)
+                ?? (person.value(forKey: "secondaryName") as? String)
+                ?? ""
+            guard !model.isEmpty else { continue }
+
+            if let dName = (person.value(forKey: "displayName") as? String) ?? (person.value(forKey: "name") as? String), !dName.isEmpty {
+                nodeModelCache[dName.lowercased()] = model
+            }
+            if let rName = person.value(forKey: "realName") as? String, !rName.isEmpty {
+                nodeModelCache[rName.lowercased()] = model
+            }
+        }
+
+        for (ep, recipient) in recipientMap {
+            let nameLower = recipient.displayName.lowercased()
+            let direct = nodeModelCache[nameLower]
+            let fuzzy = direct ?? nodeModelCache.first(where: { k, _ in
+                nameLower.contains(k) || k.contains(nameLower)
+            })?.value
+
+            let (newKind, newModel) = DeviceClassifier.classify(
+                computerName: recipient.displayName,
+                knownModel: fuzzy
+            )
+            if newKind != recipient.kind || (newModel != recipient.modelName && newModel != "Apple 裝置") {
+                let updatedRecipient = Recipient(
+                    id: recipient.id,
+                    displayName: recipient.displayName,
+                    modelName: newModel,
+                    kind: newKind,
+                    endpoint: recipient.endpoint,
+                    certificate: recipient.certificate,
+                    lastSeen: recipient.lastSeen
+                )
+                recipientMap[ep] = updatedRecipient
+                updated = true
+            }
+        }
+
+        if updated {
+            publishRecipients()
+        }
     }
 
     private func startBonjourBrowser() {
@@ -261,35 +402,17 @@ public final class LiveRecipientDiscovery: ObservableObject {
                         }
 
                         let rawModel = plist["ReceiverModelName"] as? String ?? ""
-                        let model = rawModel.lowercased()
                         let nameLower = name.lowercased()
+                        let knownModel = self.nodeModelCache[nameLower] ?? self.nodeModelCache.first(where: { k, _ in
+                            nameLower.contains(k) || k.contains(nameLower)
+                        })?.value
 
-                        let kind: DeviceKind
-                        if model.contains("iphone") || nameLower.contains("iphone") {
-                            kind = .iPhone
-                        } else if model.contains("ipad") || nameLower.contains("ipad") {
-                            kind = .iPad
-                        } else if model.contains("mac") || nameLower.contains("mac") {
-                            kind = .mac
-                        } else if plist["ReceiverMediaCapabilities"] != nil || model.isEmpty {
-                            // iOS devices (iPhones) omit ReceiverModelName in /Discover,
-                            // but always include ReceiverMediaCapabilities with LivePhoto/HEIC capabilities.
-                            kind = .iPhone
-                        } else {
-                            kind = .unknown
-                        }
-
-                        let finalModelName: String
-                        if !rawModel.isEmpty {
-                            finalModelName = rawModel
-                        } else {
-                            switch kind {
-                            case .iPhone: finalModelName = "iPhone"
-                            case .iPad: finalModelName = "iPad"
-                            case .mac: finalModelName = "Mac"
-                            case .unknown: finalModelName = "Apple Device"
-                            }
-                        }
+                        let (kind, finalModelName) = DeviceClassifier.classify(
+                            computerName: name,
+                            rawModel: rawModel,
+                            knownModel: knownModel,
+                            mediaCapabilities: plist["ReceiverMediaCapabilities"]
+                        )
 
                         let recipient = Recipient(
                             id: UUID().uuidString,

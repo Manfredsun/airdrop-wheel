@@ -176,7 +176,7 @@ public struct WheelView: View {
         let accent = WheelTheme.accentColor(for: colorScheme)
 
         return VStack(spacing: 4) {
-            Image(systemName: recipient.kind.systemSymbolName)
+            Image(systemName: recipient.iconName)
                 .font(.system(size: 26, weight: .medium))
                 .foregroundColor(isHovered ? accent : textColor.opacity(0.9))
 
@@ -218,7 +218,7 @@ public struct WheelView: View {
             if let target = model.hoveredRecipient {
                 // Hovered Target Device Readout
                 VStack(spacing: 5) {
-                    Image(systemName: target.kind.systemSymbolName)
+                    Image(systemName: target.iconName)
                         .font(.system(size: 38, weight: .bold))
                         .foregroundColor(accent)
 
