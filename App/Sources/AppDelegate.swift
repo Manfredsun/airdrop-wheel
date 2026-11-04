@@ -113,6 +113,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
+        let fdaItem = NSMenuItem(
+            title: "完全磁碟取用權限 (永久免除彈窗)…",
+            action: #selector(openFullDiskAccess),
+            keyEquivalent: ""
+        )
+        fdaItem.target = self
+        menu.addItem(fdaItem)
+
+        let filesItem = NSMenuItem(
+            title: "檔案與資料夾取用權限…",
+            action: #selector(openFilesAndFoldersAccess),
+            keyEquivalent: ""
+        )
+        filesItem.target = self
+        menu.addItem(filesItem)
+
+        menu.addItem(NSMenuItem.separator())
+
         let tipItem = NSMenuItem(
             title: "💡 提示：按住檔案時按一下 ⌃ Control 喚出輪盤",
             action: nil,
@@ -157,5 +175,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
         ]
         NSApp.orderFrontStandardAboutPanel(options)
+    }
+
+    @objc func openFullDiskAccess() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    @objc func openFilesAndFoldersAccess() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders") {
+            NSWorkspace.shared.open(url)
+        }
     }
 }
