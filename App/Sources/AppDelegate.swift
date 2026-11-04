@@ -7,17 +7,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         setupMainMenu()
         setupStatusItem()
+        Task { @MainActor in
+            AppController.shared.start()
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        Task { @MainActor in
+            AppController.shared.stop()
+        }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        showAbout()
+        Task { @MainActor in
+            AppController.shared.selectFilesAndOpenWheel()
+        }
         return true
     }
 
     private func setupMainMenu() {
         let mainMenu = NSMenu()
 
-        // Application menu (first menu item)
+        // Application Menu
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "AirDrop Wheel 2")
 
@@ -28,6 +39,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         aboutItem.target = self
         appMenu.addItem(aboutItem)
+
+        appMenu.addItem(NSMenuItem.separator())
+
+        let openItem = NSMenuItem(
+            title: "選取檔案開啟輪盤…",
+            action: #selector(selectFiles),
+            keyEquivalent: "o"
+        )
+        openItem.target = self
+        appMenu.addItem(openItem)
 
         appMenu.addItem(NSMenuItem.separator())
 
@@ -82,6 +103,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
 
+        let openItem = NSMenuItem(
+            title: "選取檔案開啟輪盤…",
+            action: #selector(selectFiles),
+            keyEquivalent: "o"
+        )
+        openItem.target = self
+        menu.addItem(openItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        let tipItem = NSMenuItem(
+            title: "💡 提示：按住檔案時按一下 ⇧ Shift 喚出輪盤",
+            action: nil,
+            keyEquivalent: ""
+        )
+        tipItem.isEnabled = false
+        menu.addItem(tipItem)
+
+        menu.addItem(NSMenuItem.separator())
+
         let aboutItem = NSMenuItem(
             title: "關於 AirDrop Wheel 2",
             action: #selector(showAbout),
@@ -101,6 +142,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         item.menu = menu
         statusItem = item
+    }
+
+    @objc func selectFiles() {
+        Task { @MainActor in
+            AppController.shared.selectFilesAndOpenWheel()
+        }
     }
 
     @objc func showAbout() {

@@ -4,3 +4,5 @@ DerivedData/
 *.xcuserstate
 xcuserdata/
 .timestamp_before_start
+dist/
+AirDrop Wheel 2.app/

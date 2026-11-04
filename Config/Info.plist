@@ -28,5 +28,15 @@
 	<string>public.app-category.utilities</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>AirDrop Wheel 2 需要存取區域網絡以探索附近的 AirDrop 接收端。</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>AirDrop Wheel 2 使用藍牙輔助探索附近的 Apple 裝置。</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>AirDrop Wheel 2 需要讀取你所選取或拖曳的檔案以進行 AirDrop 傳送。</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>AirDrop Wheel 2 需要讀取你所選取或拖曳的檔案以進行 AirDrop 傳送。</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>AirDrop Wheel 2 需要讀取你所選取或拖曳的檔案以進行 AirDrop 傳送。</string>
 </dict>
 </plist>

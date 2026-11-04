@@ -24,7 +24,7 @@ def configs(name, settings):
         config(name + "/Release", dict(settings, SWIFT_OPTIMIZATION_LEVEL="-O", DEBUG_INFORMATION_FORMAT="dwarf-with-dsym"))
     ], defaultConfigurationIsVisible="0", defaultConfigurationName="Debug")
 
-sources = sorted((root / "App/Sources").glob("*.swift"))
+sources = sorted((root / "App/Sources").rglob("*.swift"))
 resources = [root / "App/Resources/Assets.xcassets"]
 extras = [
     root / "Config/Info.plist",
