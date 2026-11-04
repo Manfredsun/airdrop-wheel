@@ -186,9 +186,11 @@ public struct WheelView: View {
                 .lineLimit(1)
                 .frame(maxWidth: 104)
 
-            Text("未驗證身分")
-                .font(.system(size: 8.5, weight: .regular))
+            Text(recipient.modelName.isEmpty ? "AirDrop 裝置" : recipient.modelName)
+                .font(.system(size: 9, weight: .medium))
                 .foregroundColor(WheelTheme.secondaryTextColor(for: colorScheme))
+                .lineLimit(1)
+                .frame(maxWidth: 104)
         }
         .offset(x: x, y: y)
     }
