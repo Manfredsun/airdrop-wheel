@@ -106,7 +106,10 @@ func makeAppIcons(sourcePath: String, outputDir: String) throws {
 }
 
 let args = CommandLine.arguments
-let source = args.count > 1 ? args[1] : "magnific__design-a-minimalist-japaneseinspired-logo-for-a-ma__78247.png"
+let defaultSource = FileManager.default.fileExists(atPath: "Design/Logo/magnific__design-a-minimalist-japaneseinspired-logo-for-a-ma__78247.png")
+    ? "Design/Logo/magnific__design-a-minimalist-japaneseinspired-logo-for-a-ma__78247.png"
+    : "magnific__design-a-minimalist-japaneseinspired-logo-for-a-ma__78247.png"
+let source = args.count > 1 ? args[1] : defaultSource
 let dest = args.count > 2 ? args[2] : "App/Resources/Assets.xcassets/AppIcon.appiconset"
 
 try makeAppIcons(sourcePath: source, outputDir: dest)

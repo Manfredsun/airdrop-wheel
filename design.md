@@ -4,7 +4,7 @@
 
 - **專案名稱**：AirDrop Wheel 2
 - **應用程式名稱**：AirDrop Wheel 2
-- **專案根目錄**：`/Users/muffin/Documents/AI Projects/Airdrop wheel 2`（單一根目錄，無任何多餘外層或重複包裝目錄）
+- **專案根目錄**：單一根目錄倉庫結構（無多餘外層包裝目錄）
 - **Bundle Identifier**：`app.airdropwheel2.macos`
 - **目標平台**：macOS 14.0+（支援 Apple Silicon 及 Intel 通用架構）
 - **程式語言**：Swift 5.0（Xcode 27.2+）
@@ -82,6 +82,6 @@ AirDropEngine 協定介面
    - 嚴禁停用 SIP、修改系統 TCC 資料庫、提取 Keychain 身份私鑰或注入系統行程。
    - 嚴禁在日誌中記錄私人檔案路徑、檔案內容或裝置隱私辨識碼。
 6. **專案與授權獨立**：
-   - FormatWheel 原專案（`/Users/muffin/Documents/AI Projects/FormatWheel-main`）及舊版 AirDrop Wheel（`/Users/muffin/Documents/AI Projects/Airdrop Wheel`）保持原樣，嚴禁修改。
+   - FormatWheel 原專案及前代 AirDrop Wheel 保持獨立與原樣，嚴禁相依修改。
    - 參考 FormatWheel 代碼時，完整保留 MIT 授權聲明。
    - OpenDrop（GPL-3.0）僅供協定理論分析，嚴禁任何代碼引入。

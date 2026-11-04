@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build & Verify macOS App
+    runs-on: macos-14
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Print Developer Environment
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build AirDrop Wheel 2 (Debug)
+        run: |
+          xcodebuild -project "AirDrop Wheel 2.xcodeproj" \
+                     -scheme "AirDrop Wheel 2" \
+                     -configuration Debug \
+                     -derivedDataPath build/DerivedData \
+                     CODE_SIGN_IDENTITY="" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     build
+
+      - name: Build Release Bundle via Portable Script
+        run: |
+          bash scripts/build_release.sh

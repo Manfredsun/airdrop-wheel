@@ -8,12 +8,13 @@ echo "==> Building AirDrop Wheel 2 in Release configuration..."
 xcodebuild -project "AirDrop Wheel 2.xcodeproj" \
     -scheme "AirDrop Wheel 2" \
     -configuration Release \
+    -derivedDataPath build/DerivedData \
     build \
     CODE_SIGN_IDENTITY="" \
     CODE_SIGNING_REQUIRED=NO \
     -quiet
 
-DERIVED_APP="$HOME/Library/Developer/Xcode/DerivedData/AirDrop_Wheel_2-glnwotnwrbwhqdgobhzmxfjoffls/Build/Products/Release/AirDrop Wheel 2.app"
+DERIVED_APP="build/DerivedData/Build/Products/Release/AirDrop Wheel 2.app"
 
 if [ ! -d "$DERIVED_APP" ]; then
     echo "Error: Built app not found at $DERIVED_APP"

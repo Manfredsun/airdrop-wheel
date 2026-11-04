@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AirDrop Wheel 2 — Radial File Dropping for macOS</title>
+  <meta name="description" content="A high-performance, pure Swift macOS utility combining FormatWheel radial gestures with native AirDrop peer-to-peer transmission.">
+  <link rel="icon" type="image/png" href="assets/app-icon.png">
+
+  <!-- OpenGraph / Social Meta Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="AirDrop Wheel 2 — Radial File Dropping for macOS">
+  <meta property="og:description" content="Hold ⌃ Control, flick into a sector, and send. Built in pure Swift on Network.framework & AWDL. Zero sound, zero dependencies.">
+  <meta property="og:image" content="assets/app-icon.png">
+  <meta property="og:url" content="https://manfredsun.github.io/airdrop-wheel/">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="#" class="brand">
+        <img src="assets/app-icon.png" alt="AirDrop Wheel 2 Logo" class="brand-icon">
+        <span class="brand-text">AirDrop Wheel 2</span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#demo">Live Demo</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/Manfredsun/airdrop-wheel" target="_blank" rel="noopener" class="github-link">
+          <svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Dark/Light Mode">
+          <span class="theme-icon">🌓</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="badge-pill">
+        <span class="pulse-dot"></span>
+        <span>macOS 14.0+ Sonoma & Sequoia • Universal ARM64 & Intel</span>
+      </div>
+
+      <h1 class="hero-title">
+        Radial File Dropping<br>
+        <span class="gradient-text">Meets Native AirDrop.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        A high-performance, zero-dependency, pure Swift macOS companion.
+        Hold <kbd>⌃ Control</kbd> while dragging files, flick into a radial sector, and release to send.
+      </p>
+
+      <div class="hero-actions">
+        <a href="https://github.com/Manfredsun/airdrop-wheel/releases" target="_blank" rel="noopener" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.92-2.85-.9.04-2 .6-2.65 1.35-.58.66-1.08 1.73-.95 2.76 1.01.08 2.06-.51 2.68-1.26z"/>
+          </svg>
+          Download for macOS
+        </a>
+        <a href="https://github.com/Manfredsun/airdrop-wheel" target="_blank" rel="noopener" class="btn btn-secondary">
+          View on GitHub
+        </a>
+      </div>
+
+      <!-- Quick Command Snippet -->
+      <div class="code-snippet-box">
+        <span class="code-prompt">$</span>
+        <code id="install-cmd">git clone https://github.com/Manfredsun/airdrop-wheel.git && bash airdrop-wheel/scripts/build_release.sh</code>
+        <button id="copy-btn" class="copy-btn" title="Copy Command">
+          <span id="copy-label">Copy</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Demo Section -->
+  <section id="demo" class="demo-section">
+    <div class="section-header">
+      <span class="section-tag">Interactive Playground</span>
+      <h2>Try the Radial Wheel in Your Browser</h2>
+      <p>Drag the file below onto the wheel, hover over any recipient sector, and release to experience the flick-to-send interaction!</p>
+    </div>
+
+    <div class="demo-playground">
+      <!-- Draggable File Card -->
+      <div class="file-dock">
+        <div id="draggable-file" class="draggable-file-card" draggable="true">
+          <div class="file-icon">📄</div>
+          <div class="file-info">
+            <span class="file-name">Project_Pitch.pdf</span>
+            <span class="file-meta">18.4 MB • Drag me to wheel</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulated Wheel Stage -->
+      <div class="wheel-stage" id="wheel-stage">
+        <div class="wheel-disc" id="wheel-disc">
+          <!-- 8 Radial Sectors rendered via SVG -->
+          <svg class="wheel-svg" viewBox="-270 -270 540 540" id="wheel-svg">
+            <g id="sectors-group"></g>
+          </svg>
+
+          <!-- Central Readout Hub -->
+          <div class="wheel-hub" id="wheel-hub">
+            <div class="hub-default" id="hub-default">
+              <span class="hub-glyph">🎯</span>
+              <span class="hub-title">AirDrop Wheel</span>
+              <span class="hub-hint">Drag file here</span>
+            </div>
+            <div class="hub-active" id="hub-active" style="display: none;">
+              <span class="hub-target-glyph" id="hub-target-glyph">📱</span>
+              <span class="hub-target-name" id="hub-target-name">Recipient</span>
+              <span class="hub-target-action">Release to Send</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Silent Transfer HUD Simulator -->
+        <div class="demo-hud" id="demo-hud" style="display: none;">
+          <div class="hud-header">
+            <span class="hud-status-dot"></span>
+            <span class="hud-title" id="hud-status-text">Sending to iPhone 15 Pro...</span>
+          </div>
+          <div class="hud-progress-track">
+            <div class="hud-progress-bar" id="hud-progress-bar"></div>
+          </div>
+          <div class="hud-meta">
+            <span id="hud-speed">48.2 MB/s</span>
+            <span id="hud-percent">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 Core Pillars / Features Grid -->
+  <section id="features" class="features-section">
+    <div class="section-header">
+      <span class="section-tag">Core Principles</span>
+      <h2>Engineered for Flow, Speed & Silence</h2>
+      <p>Every detail is designed to remove friction from peer-to-peer file transfer on macOS.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>FormatWheel Radial UX</h3>
+        <p>No window hunting. Hold ⌃ Control during file drag to summon the 540px radial wheel directly at your cursor. Flick into any 45° sector to dispatch instantly.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Pure Swift Engine</h3>
+        <p>Rewritten from scratch with Apple's native <code>Network.framework</code> and AWDL. Zero C/Python FFI dependencies, instantaneous cold boot, and rock-solid stability.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🤫</div>
+        <h3>Total Silence Policy</h3>
+        <p>Strictly zero audio assets and zero sound APIs linked. No system beeps, no chimes. A quiet, unobtrusive utility built for focused creators and developers.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3>Transparent Security</h3>
+        <p>TLS Leaf Certificate Pinning locks peer connections without relying on Apple cloud credentials. Bounded constant $O(1)$ memory streaming through POSIX ODC CPIO.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture & Protocol Section -->
+  <section id="architecture" class="architecture-section">
+    <div class="section-header">
+      <span class="section-tag">How It Works</span>
+      <h2>The AirDrop Protocol Pipeline</h2>
+      <p>How AirDrop Wheel 2 communicates with nearby Apple devices peer-to-peer.</p>
+    </div>
+
+    <div class="protocol-timeline">
+      <div class="step-card">
+        <div class="step-number">01</div>
+        <h4>AWDL Interface Binding</h4>
+        <p>Binds directly to <code>awdl0</code> (Apple Wireless Direct Link) with peer-to-peer IPv6 multicast discovery.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">02</div>
+        <h4>DNS-SD Bonjour Browsing</h4>
+        <p>Scans <code>_airdrop._tcp</code> services and resolves target device models (iPhone, MacBook, iPad) while filtering the local host.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">03</div>
+        <h4>TLS Handshake & Leaf Pinning</h4>
+        <p>Initializes a secure TLS session via <code>POST /Discover</code> and pins the recipient's leaf public key to prevent MITM attacks.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">04</div>
+        <h4>CPIO Chunked Streaming</h4>
+        <p>Streams standard POSIX ODC CPIO archives in 64 KiB chunks over <code>POST /Upload</code>, maintaining $< 15\text{MB}$ memory footprint.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Installation Section -->
+  <section id="install" class="install-section">
+    <div class="section-header">
+      <span class="section-tag">Get Started</span>
+      <h2>Install AirDrop Wheel 2</h2>
+      <p>Compatible with all Macs running macOS 14.0 Sonoma or later.</p>
+    </div>
+
+    <div class="install-card">
+      <div class="install-tab-header">
+        <button class="tab-btn active" data-tab="binary">Download .app</button>
+        <button class="tab-btn" data-tab="source">Build from Source</button>
+      </div>
+
+      <div class="tab-pane active" id="pane-binary">
+        <p class="tab-desc">Download pre-compiled Universal binary for Apple Silicon and Intel:</p>
+        <a href="https://github.com/Manfredsun/airdrop-wheel/releases" target="_blank" rel="noopener" class="btn btn-primary">
+          Download Latest Release (.app)
+        </a>
+        <div class="install-steps">
+          <p>1. Drag <strong>AirDrop Wheel 2.app</strong> into <code>/Applications</code></p>
+          <p>2. Grant <strong>Accessibility</strong> and <strong>Local Network</strong> permissions when prompted</p>
+          <p>3. Set recipient device to <strong>"Everyone for 10 minutes"</strong></p>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="pane-source" style="display: none;">
+        <p class="tab-desc">Clone and compile using Xcode Command Line Tools:</p>
+        <pre class="code-block"><code>git clone https://github.com/Manfredsun/airdrop-wheel.git
+cd airdrop-wheel
+bash scripts/build_release.sh</code></pre>
+        <p class="tab-hint">Output binary will be code-signed and available at <code>dist/AirDrop Wheel 2.app</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <img src="assets/app-icon.png" alt="AirDrop Wheel 2 Logo" class="footer-icon">
+        <span>AirDrop Wheel 2</span>
+      </div>
+
+      <div class="footer-links">
+        <a href="https://github.com/Manfredsun/airdrop-wheel" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/Manfredsun/airdrop-wheel/blob/main/docs/ARCHITECTURE.md">Architecture</a>
+        <a href="https://github.com/Manfredsun/airdrop-wheel/blob/main/docs/TROUBLESHOOTING.md">Troubleshooting</a>
+        <a href="https://github.com/Manfredsun/airdrop-wheel/blob/main/LICENSE">MIT License</a>
+      </div>
+
+      <div class="footer-attribution">
+        <p>Created by <strong>Manfred Shen (申承羲)</strong>. Released under the MIT License.</p>
+        <p class="sub-attribution">Radial wheel interaction philosophy inspired by FormatWheel (Copyright &copy; 2026 Elise616).</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
