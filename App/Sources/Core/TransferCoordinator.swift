@@ -70,9 +70,9 @@ public final class TransferCoordinator: ObservableObject {
         self.activeConnection = connection
 
         connection.stateUpdateHandler = { [weak self, weak connection] connState in
-            guard let connection else { return }
+            guard let self, let connection else { return }
             Task { @MainActor in
-                guard let self, !self.isCancelled, self.activeConnection === connection else { return }
+                guard !self.isCancelled, self.activeConnection === connection else { return }
                 switch connState {
                 case .ready:
                     self.sendOffer(connection, payload: payload, recipient: recipient, transferID: tID)
@@ -100,8 +100,9 @@ public final class TransferCoordinator: ObservableObject {
             let offerData = try offer.request()
 
             connection.send(content: offerData, completion: .contentProcessed { [weak self] error in
+                guard let self else { return }
                 Task { @MainActor in
-                    guard let self, !self.isCancelled else { return }
+                    guard !self.isCancelled else { return }
                     if let error {
                         self.logger.error("Failed to send /Ask offer: \(error.localizedDescription)")
                         self.fail(recipient: recipient, reason: "發送請求失敗: \(error.localizedDescription)")
@@ -119,9 +120,9 @@ public final class TransferCoordinator: ObservableObject {
 
     private func readOfferResponse(_ connection: NWConnection, payload: TransferPayload, recipient: Recipient, transferID: UUID) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self, weak connection] data, _, eof, error in
-            guard let connection else { return }
+            guard let self, let connection else { return }
             Task { @MainActor in
-                guard let self, !self.isCancelled, self.activeConnection === connection else { return }
+                guard !self.isCancelled, self.activeConnection === connection else { return }
 
                 do {
                     if let response = try self.currentDecoder.append(data ?? Data(), eof: eof) {
@@ -195,8 +196,9 @@ public final class TransferCoordinator: ObservableObject {
 
         // 1. Send HTTP request headers
         connection.send(content: Data(header.utf8), completion: .contentProcessed { [weak self] error in
+            guard let self else { return }
             Task { @MainActor in
-                guard let self, !self.isCancelled else { return }
+                guard !self.isCancelled else { return }
                 if let error {
                     self.logger.error("Failed to send /Upload header: \(error.localizedDescription)")
                     self.fail(recipient: recipient, reason: "傳送檔案標頭失敗: \(error.localizedDescription)")
@@ -214,8 +216,9 @@ public final class TransferCoordinator: ObservableObject {
             // Final zero-length chunk
             let zeroChunk = Data("0\r\n\r\n".utf8)
             connection.send(content: zeroChunk, completion: .contentProcessed { [weak self] error in
+                guard let self else { return }
                 Task { @MainActor in
-                    guard let self, !self.isCancelled else { return }
+                    guard !self.isCancelled else { return }
                     if let error {
                         self.logger.error("Failed to send final 0-chunk: \(error.localizedDescription)")
                         self.fail(recipient: recipient, reason: "傳送檔案結尾失敗: \(error.localizedDescription)")
@@ -237,8 +240,9 @@ public final class TransferCoordinator: ObservableObject {
         chunkPayload.append(Data("\r\n".utf8))
 
         connection.send(content: chunkPayload, completion: .contentProcessed { [weak self] error in
+            guard let self else { return }
             Task { @MainActor in
-                guard let self, !self.isCancelled else { return }
+                guard !self.isCancelled else { return }
                 if let error {
                     self.logger.error("Failed to send chunk #\(index): \(error.localizedDescription)")
                     self.fail(recipient: recipient, reason: "傳送檔案資料失敗: \(error.localizedDescription)")
@@ -254,9 +258,9 @@ public final class TransferCoordinator: ObservableObject {
 
     private func readFinalUploadResponse(_ connection: NWConnection, recipient: Recipient) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self, weak connection] data, _, eof, error in
-            guard let connection else { return }
+            guard let self, let connection else { return }
             Task { @MainActor in
-                guard let self, !self.isCancelled, self.activeConnection === connection else { return }
+                guard !self.isCancelled, self.activeConnection === connection else { return }
                 do {
                     if let response = try self.currentDecoder.append(data ?? Data(), eof: eof) {
                         self.logger.info("Received final /Upload response: status \(response.status)")
