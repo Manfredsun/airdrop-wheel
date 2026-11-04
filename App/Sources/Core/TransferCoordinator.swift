@@ -58,7 +58,7 @@ public final class TransferCoordinator: ObservableObject {
 
         let params = NWParameters(tls: tls, tcp: NWProtocolTCP.Options())
         params.includePeerToPeer = true
-        if case .service(_, _, _, let interface) = recipient.endpoint {
+        if case .service(_, _, _, let interface) = recipient.endpoint, let interface {
             params.requiredInterface = interface
         }
 

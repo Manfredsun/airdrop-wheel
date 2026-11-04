@@ -50,6 +50,34 @@ public struct WheelRingBodyShape: Shape {
     }
 }
 
+public struct WheelDividerShape: Shape {
+    public let index: Int
+    public var count: Int = WheelTheme.sectorCount
+    public var innerRadius: CGFloat = WheelTheme.innerRadius
+    public var outerRadius: CGFloat = WheelTheme.outerRadius
+
+    public func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let step = 360.0 / Double(count)
+        let angleDeg = Double(index) * step - 90.0 + (step / 2.0)
+        let angleRad = angleDeg * .pi / 180.0
+
+        let p0 = CGPoint(
+            x: center.x + innerRadius * cos(angleRad),
+            y: center.y + innerRadius * sin(angleRad)
+        )
+        let p1 = CGPoint(
+            x: center.x + outerRadius * cos(angleRad),
+            y: center.y + outerRadius * sin(angleRad)
+        )
+
+        var path = Path()
+        path.move(to: p0)
+        path.addLine(to: p1)
+        return path
+    }
+}
+
 public struct WheelView: View {
     @ObservedObject public var model: WheelModel
     @Environment(\.colorScheme) var colorScheme
@@ -67,18 +95,15 @@ public struct WheelView: View {
                     .fill(WheelTheme.ringBackgroundColor(for: colorScheme), style: FillStyle(eoFill: true))
                     .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.22), radius: 24, x: 0, y: 10)
 
-                // 2. Faint Inner & Outer borders for tactile realism
+                // 2. Faint Outer border for tactile realism
                 Circle()
                     .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.14) : Color.black.opacity(0.08), lineWidth: 1)
                     .frame(width: WheelTheme.wheelDiameter, height: WheelTheme.wheelDiameter)
 
-                Circle()
-                    .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08), lineWidth: 1)
-                    .frame(width: WheelTheme.innerRadius * 2, height: WheelTheme.innerRadius * 2)
-
-                // 3. 8 Radial Divider Lines
+                // 3. 8 Radial Divider Lines from Hub to Outer Rim
                 ForEach(0..<WheelTheme.sectorCount, id: \.self) { idx in
-                    dividerLine(for: idx)
+                    WheelDividerShape(index: idx)
+                        .stroke(WheelTheme.dividerColor(for: colorScheme), lineWidth: 1.2)
                 }
 
                 // 4. 8 Sectors Content (Discovered devices or empty blank)
@@ -99,24 +124,6 @@ public struct WheelView: View {
             bottomFooterBadge
                 .offset(y: WheelTheme.outerRadius + 40)
         }
-    }
-
-    // MARK: - Divider Line
-    private func dividerLine(for index: Int) -> some View {
-        let step = 360.0 / Double(WheelTheme.sectorCount)
-        let angleDeg = Double(index) * step - 90.0 + (step / 2.0)
-        let angleRad = angleDeg * .pi / 180.0
-        let r0 = WheelTheme.innerRadius
-        let r1 = WheelTheme.outerRadius
-
-        let p0 = CGPoint(x: r0 * cos(angleRad), y: r0 * sin(angleRad))
-        let p1 = CGPoint(x: r1 * cos(angleRad), y: r1 * sin(angleRad))
-
-        return Path { path in
-            path.move(to: p0)
-            path.addLine(to: p1)
-        }
-        .stroke(WheelTheme.dividerColor(for: colorScheme), lineWidth: 1.5)
     }
 
     // MARK: - Sector View
@@ -248,14 +255,18 @@ public struct WheelView: View {
                     }
                 }
             } else {
-                VStack(spacing: 5) {
+                VStack(spacing: 6) {
                     Image(systemName: "arrow.up.circle")
-                        .font(.system(size: 32))
-                        .foregroundColor(textColor.opacity(0.5))
+                        .font(.system(size: 36, weight: .light))
+                        .foregroundColor(textColor.opacity(0.55))
 
                     Text("請拖曳檔案")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(textColor.opacity(0.75))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(textColor.opacity(0.85))
+
+                    Text("或放手至外圈裝置傳送")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(WheelTheme.secondaryTextColor(for: colorScheme))
                 }
             }
         }

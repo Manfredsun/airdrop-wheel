@@ -77,6 +77,9 @@ public final class AppController: ObservableObject {
     }
 
     public func showWheel(at point: NSPoint, payload: TransferPayload) {
+        if case .files(let items) = payload {
+            discovery.updatePayloadURLs(items.map(\.url))
+        }
         overlay.show(at: point, payload: payload, recipients: discovery.recipients)
     }
 

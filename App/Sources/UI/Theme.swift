@@ -12,10 +12,10 @@ public enum WheelTheme {
     public static let sectorCount: Int = 8
     public static let wheelDiameter: CGFloat = 540.0
     public static let outerRadius: CGFloat = wheelDiameter / 2.0 // 270.0
-    public static let innerRadius: CGFloat = 145.0
-    public static let hubDiameter: CGFloat = 190.0
+    public static let innerRadius: CGFloat = 140.0
+    public static let hubDiameter: CGFloat = 280.0
     public static let outerRimWidth: CGFloat = 6.0
-    public static let centerDeadZone: CGFloat = 110.0
+    public static let centerDeadZone: CGFloat = 140.0
 
     // Appearance helpers
     public static func ringBackgroundColor(for colorScheme: ColorScheme) -> Color {

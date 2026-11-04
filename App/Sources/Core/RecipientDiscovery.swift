@@ -37,6 +37,11 @@ private final class DiscoveryCertBox: @unchecked Sendable {
     var data: Data?
 }
 
+private final class AirDropWakeDelegate: NSObject {
+    @objc func browserWillChangePeople(_ b: AnyObject) {}
+    @objc func browserDidChangePeople(_ b: AnyObject) {}
+}
+
 @MainActor
 public final class LiveRecipientDiscovery: ObservableObject {
     @Published public private(set) var recipients: [Recipient] = []
@@ -44,6 +49,7 @@ public final class LiveRecipientDiscovery: ObservableObject {
 
     private var browser: NWBrowser?
     private var wakeBrowser: NSObject?
+    private var wakeDelegate: AirDropWakeDelegate?
     private var activeConnections: [NWEndpoint: NWConnection] = [:]
     private var knownCertificates: [NWEndpoint: Data] = [:]
     private var recipientMap: [NWEndpoint: Recipient] = [:]
@@ -68,6 +74,7 @@ public final class LiveRecipientDiscovery: ObservableObject {
         if let wake = wakeBrowser {
             _ = wake.perform(NSSelectorFromString("stop"))
             wakeBrowser = nil
+            wakeDelegate = nil
         }
 
         for (_, conn) in activeConnections {
@@ -79,13 +86,31 @@ public final class LiveRecipientDiscovery: ObservableObject {
         recipients.removeAll()
     }
 
-    private func startWakeBrowser() {
-        guard wakeBrowser == nil else { return }
+    public func updatePayloadURLs(_ urls: [URL]) {
+        guard !urls.isEmpty, let wake = wakeBrowser else { return }
+        wake.setValue(urls, forKey: "urlsBeingShared")
+    }
+
+    private func startWakeBrowser(with urls: [URL] = []) {
+        guard wakeBrowser == nil else {
+            if !urls.isEmpty {
+                wakeBrowser?.setValue(urls, forKey: "urlsBeingShared")
+            }
+            return
+        }
         if NSClassFromString("SFAirDropBrowser") == nil {
             Bundle(path: "/System/Library/PrivateFrameworks/Sharing.framework")?.load()
         }
         guard let cls = NSClassFromString("SFAirDropBrowser") as? NSObject.Type else { return }
         let instance = cls.init()
+        let del = AirDropWakeDelegate()
+        self.wakeDelegate = del
+        instance.setValue(del, forKey: "delegate")
+
+        // Set urlsBeingShared so sharingd actively transmits BLE wake pulses for nearby iOS devices
+        let targetURLs = !urls.isEmpty ? urls : [URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("airdrop_probe.dat")]
+        instance.setValue(targetURLs, forKey: "urlsBeingShared")
+
         wakeBrowser = instance
         _ = instance.perform(NSSelectorFromString("start"))
     }
@@ -103,16 +128,29 @@ public final class LiveRecipientDiscovery: ObservableObject {
                 var currentEndpoints = Set<NWEndpoint>()
 
                 for result in results {
-                    let ep = result.endpoint
+                    let awdl = result.interfaces.first(where: { $0.name == "awdl0" })
+                    let ep: NWEndpoint
+                    if case .service(let name, let type, let domain, let iface) = result.endpoint {
+                        let chosenIface = (iface?.name == "awdl0" ? iface : awdl) ?? iface
+                        ep = .service(name: name, type: type, domain: domain, interface: chosenIface)
+                    } else {
+                        ep = result.endpoint
+                    }
+
                     currentEndpoints.insert(ep)
                     if self.recipientMap[ep] == nil && self.activeConnections[ep] == nil {
                         self.probeEndpoint(ep)
                     }
                 }
 
-                // Remove stale endpoints
+                // Remove stale endpoints based on service name
+                let currentNames = Set(currentEndpoints.compactMap { ep -> String? in
+                    if case .service(let name, _, _, _) = ep { return name }
+                    return nil
+                })
+
                 for ep in Array(self.recipientMap.keys) {
-                    if !currentEndpoints.contains(ep) {
+                    if case .service(let name, _, _, _) = ep, !currentNames.contains(name) {
                         self.recipientMap.removeValue(forKey: ep)
                         self.knownCertificates.removeValue(forKey: ep)
                     }
@@ -154,7 +192,7 @@ public final class LiveRecipientDiscovery: ObservableObject {
 
         let params = NWParameters(tls: tls, tcp: NWProtocolTCP.Options())
         params.includePeerToPeer = true
-        if case .service(_, _, _, let interface) = endpoint {
+        if case .service(_, _, _, let interface) = endpoint, let interface {
             params.requiredInterface = interface
         }
 
@@ -222,22 +260,41 @@ public final class LiveRecipientDiscovery: ObservableObject {
                             return
                         }
 
-                        let model = (plist["ReceiverModelName"] as? String ?? "").lowercased()
+                        let rawModel = plist["ReceiverModelName"] as? String ?? ""
+                        let model = rawModel.lowercased()
+                        let nameLower = name.lowercased()
+
                         let kind: DeviceKind
-                        if model.contains("iphone") {
+                        if model.contains("iphone") || nameLower.contains("iphone") {
                             kind = .iPhone
-                        } else if model.contains("ipad") {
+                        } else if model.contains("ipad") || nameLower.contains("ipad") {
                             kind = .iPad
-                        } else if model.contains("mac") {
+                        } else if model.contains("mac") || nameLower.contains("mac") {
                             kind = .mac
+                        } else if plist["ReceiverMediaCapabilities"] != nil || model.isEmpty {
+                            // iOS devices (iPhones) omit ReceiverModelName in /Discover,
+                            // but always include ReceiverMediaCapabilities with LivePhoto/HEIC capabilities.
+                            kind = .iPhone
                         } else {
                             kind = .unknown
+                        }
+
+                        let finalModelName: String
+                        if !rawModel.isEmpty {
+                            finalModelName = rawModel
+                        } else {
+                            switch kind {
+                            case .iPhone: finalModelName = "iPhone"
+                            case .iPad: finalModelName = "iPad"
+                            case .mac: finalModelName = "Mac"
+                            case .unknown: finalModelName = "Apple Device"
+                            }
                         }
 
                         let recipient = Recipient(
                             id: UUID().uuidString,
                             displayName: name,
-                            modelName: model,
+                            modelName: finalModelName,
                             kind: kind,
                             endpoint: endpoint,
                             certificate: cert,
