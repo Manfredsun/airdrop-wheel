@@ -158,6 +158,6 @@ Contributions, bug reports, and pull requests are warmly welcomed! Please read o
 
 ## 📄 License & Attribution
 
-- **AirDrop Wheel** is released under the [MIT License](LICENSE). Copyright (c) 2026 Manfred Shen (申承羲).
+- **AirDrop Wheel** is released under the [MIT License](LICENSE). Copyright (c) 2026 Manfred Sun.
 - **FormatWheel**: Radial wheel interaction philosophy references FormatWheel (Copyright (c) 2026 Elise616, MIT License).
 - **Brand Assets**: The name "AirDrop Wheel" and original logo assets are proprietary and reserved.

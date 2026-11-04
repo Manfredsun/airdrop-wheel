@@ -158,6 +158,6 @@ AirDrop Wheel 採分層架構設計：
 
 ## 📄 授權條款與版權宣告
 
-- **AirDrop Wheel** 主專案代碼採用 [MIT License](LICENSE) 開源。Copyright (c) 2026 Manfred Shen (申承羲)。
+- **AirDrop Wheel** 主專案代碼採用 [MIT License](LICENSE) 開源。Copyright (c) 2026 Manfred Sun。
 - **FormatWheel 致敬宣告**：徑向輪盤操作哲學與甩送互動參考 FormatWheel（Copyright (c) 2026 Elise616，MIT 授權）。
 - **品牌資產宣告**：專案名稱「AirDrop Wheel」及 Logo 原始圖檔為創作者專屬著作資產，保留一切權利。
