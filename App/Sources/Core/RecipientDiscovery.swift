@@ -2,6 +2,7 @@ import Foundation
 import Network
 import Security
 import AppKit
+import SystemConfiguration
 
 public enum DeviceKind: String, Sendable, CaseIterable {
     case iPhone
@@ -130,6 +131,99 @@ public enum DeviceClassifier {
     }
 }
 
+public enum LocalDeviceDetector {
+    public static func normalizeName(_ name: String) -> String {
+        let lower = name.lowercased()
+        let filtered = lower.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }
+        return String(String.UnicodeScalarView(filtered))
+    }
+
+    public static func getLocalHostNames() -> Set<String> {
+        var names = Set<String>()
+        if let loc = Host.current().localizedName {
+            names.insert(loc)
+        }
+        if let comp = SCDynamicStoreCopyComputerName(nil, nil) as String? {
+            names.insert(comp)
+        }
+        if let localHost = SCDynamicStoreCopyLocalHostName(nil) as String? {
+            names.insert(localHost)
+        }
+        let hName = ProcessInfo.processInfo.hostName
+        names.insert(hName)
+        if hName.hasSuffix(".local") {
+            names.insert(String(hName.dropLast(6)))
+        }
+        return names
+    }
+
+    public static func getLocalIPAddresses() -> Set<String> {
+        var addresses = Set<String>()
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else { return addresses }
+        defer { freeifaddrs(ifaddr) }
+
+        for ptr in sequence(first: firstAddr, next: { $0.pointee.ifa_next }) {
+            let flags = Int32(ptr.pointee.ifa_flags)
+            let addr = ptr.pointee.ifa_addr.pointee
+            guard (flags & (IFF_UP|IFF_RUNNING)) == (IFF_UP|IFF_RUNNING) else { continue }
+
+            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            if addr.sa_family == UInt8(AF_INET) || addr.sa_family == UInt8(AF_INET6) {
+                if getnameinfo(ptr.pointee.ifa_addr, socklen_t(addr.sa_len), &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST) == 0 {
+                    let ip = String(cString: hostname)
+                    let cleanIP = ip.components(separatedBy: "%").first ?? ip
+                    addresses.insert(cleanIP.lowercased())
+                }
+            }
+        }
+        return addresses
+    }
+
+    public static func isSelfName(_ candidate: String, selfIdentities: Set<String> = []) -> Bool {
+        let norm = normalizeName(candidate)
+        guard !norm.isEmpty else { return false }
+        if selfIdentities.contains(norm) {
+            return true
+        }
+        let localHostNorms = Set(getLocalHostNames().map(normalizeName))
+        if localHostNorms.contains(norm) {
+            return true
+        }
+        return false
+    }
+
+    public static func isSelfConnection(_ path: NWPath?) -> Bool {
+        guard let path,
+              case .hostPort(let remoteHost, _) = path.remoteEndpoint,
+              case .hostPort(let localHost, _) = path.localEndpoint else {
+            return false
+        }
+
+        if remoteHost == localHost {
+            return true
+        }
+
+        let remoteIPStr: String
+        switch remoteHost {
+        case .ipv4(let ip): remoteIPStr = "\(ip)"
+        case .ipv6(let ip): remoteIPStr = "\(ip)"
+        case .name(let name, _): remoteIPStr = name
+        @unknown default: remoteIPStr = ""
+        }
+        let cleanRemote = remoteIPStr.components(separatedBy: "%").first?.lowercased() ?? remoteIPStr.lowercased()
+        if cleanRemote == "127.0.0.1" || cleanRemote == "::1" {
+            return true
+        }
+
+        if getLocalIPAddresses().contains(cleanRemote) {
+            return true
+        }
+
+        return false
+    }
+}
+
 @MainActor
 public final class LiveRecipientDiscovery: ObservableObject {
     @Published public private(set) var recipients: [Recipient] = []
@@ -139,6 +233,7 @@ public final class LiveRecipientDiscovery: ObservableObject {
     private var wakeBrowser: NSObject?
     private var wakeDelegate: AirDropWakeDelegate?
     private var nodeModelCache: [String: String] = [:]
+    private var selfIdentities: Set<String> = []
     private var activeConnections: [NWEndpoint: NWConnection] = [:]
     private var knownCertificates: [NWEndpoint: Data] = [:]
     private var recipientMap: [NWEndpoint: Recipient] = [:]
@@ -173,6 +268,8 @@ public final class LiveRecipientDiscovery: ObservableObject {
         knownCertificates.removeAll()
         recipientMap.removeAll()
         recipients.removeAll()
+        selfIdentities.removeAll()
+        nodeModelCache.removeAll()
     }
 
     public func updatePayloadURLs(_ urls: [URL]) {
@@ -212,6 +309,17 @@ public final class LiveRecipientDiscovery: ObservableObject {
     private func handleDiscoveredPeople(_ people: [NSObject]) {
         var updated = false
         for person in people {
+            let isMe = (person.value(forKey: "me") as? Bool) ?? false
+            if isMe {
+                if let dName = (person.value(forKey: "displayName") as? String) ?? (person.value(forKey: "name") as? String), !dName.isEmpty {
+                    selfIdentities.insert(LocalDeviceDetector.normalizeName(dName))
+                }
+                if let rName = person.value(forKey: "realName") as? String, !rName.isEmpty {
+                    selfIdentities.insert(LocalDeviceDetector.normalizeName(rName))
+                }
+                continue
+            }
+
             let model = (person.value(forKey: "model") as? String)
                 ?? (person.value(forKey: "secondaryName") as? String)
                 ?? ""
@@ -226,6 +334,13 @@ public final class LiveRecipientDiscovery: ObservableObject {
         }
 
         for (ep, recipient) in recipientMap {
+            if LocalDeviceDetector.isSelfName(recipient.displayName, selfIdentities: selfIdentities) {
+                recipientMap.removeValue(forKey: ep)
+                knownCertificates.removeValue(forKey: ep)
+                updated = true
+                continue
+            }
+
             let nameLower = recipient.displayName.lowercased()
             let direct = nodeModelCache[nameLower]
             let fuzzy = direct ?? nodeModelCache.first(where: { k, _ in
@@ -346,6 +461,11 @@ public final class LiveRecipientDiscovery: ObservableObject {
                 guard let self, self.isStarted, self.activeConnections[endpoint] === connection else { return }
                 switch state {
                 case .ready:
+                    if LocalDeviceDetector.isSelfConnection(connection.currentPath) {
+                        connection.cancel()
+                        self.activeConnections.removeValue(forKey: endpoint)
+                        return
+                    }
                     self.sendDiscoverRequest(connection, endpoint: endpoint, certBox: certBox)
                 case .failed, .cancelled:
                     self.activeConnections.removeValue(forKey: endpoint)
@@ -401,6 +521,12 @@ public final class LiveRecipientDiscovery: ObservableObject {
                             return
                         }
 
+                        // Filter out self-device (hide own Mac)
+                        if LocalDeviceDetector.isSelfName(name, selfIdentities: self.selfIdentities) ||
+                           LocalDeviceDetector.isSelfConnection(connection.currentPath) {
+                            return
+                        }
+
                         let rawModel = plist["ReceiverModelName"] as? String ?? ""
                         let nameLower = name.lowercased()
                         let knownModel = self.nodeModelCache[nameLower] ?? self.nodeModelCache.first(where: { k, _ in
@@ -442,6 +568,8 @@ public final class LiveRecipientDiscovery: ObservableObject {
     }
 
     private func publishRecipients() {
-        self.recipients = Array(recipientMap.values).sorted { $0.displayName < $1.displayName }
+        self.recipients = recipientMap.values
+            .filter { !LocalDeviceDetector.isSelfName($0.displayName, selfIdentities: self.selfIdentities) }
+            .sorted { $0.displayName < $1.displayName }
     }
 }
