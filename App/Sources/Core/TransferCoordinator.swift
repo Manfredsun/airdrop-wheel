@@ -152,6 +152,8 @@ public final class TransferCoordinator: ObservableObject {
     }
 
     private func startUpload(_ connection: NWConnection, items: [ValidatedTransferItem], recipient: Recipient, transferID: UUID) {
+        let totalBytes = items.reduce(UInt64(0)) { $0 + $1.byteSize }
+
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
                 let archive = try AirDropCPIOArchive.buildArchive(for: items)
@@ -159,7 +161,7 @@ public final class TransferCoordinator: ObservableObject {
 
                 DispatchQueue.main.async {
                     guard let self, !self.isCancelled, self.activeConnection === connection else { return }
-                    self.sendChunkedUpload(connection, chunks: chunks, recipient: recipient, transferID: transferID)
+                    self.sendChunkedUpload(connection, chunks: chunks, recipient: recipient, transferID: transferID, totalBytes: totalBytes)
                 }
             } catch {
                 DispatchQueue.main.async {
@@ -169,8 +171,8 @@ public final class TransferCoordinator: ObservableObject {
         }
     }
 
-    private func sendChunkedUpload(_ connection: NWConnection, chunks: [Data], recipient: Recipient, transferID: UUID) {
-        let header = "POST /Upload HTTP/1.1\r\nUser-Agent: AirDrop/1.0\r\nTransferID: \(transferID.uuidString)\r\nTotalBytes: 0\r\nContent-Type: application/x-dvzip\r\nConnection: keep-alive\r\nTransfer-Encoding: chunked\r\n\r\n"
+    private func sendChunkedUpload(_ connection: NWConnection, chunks: [Data], recipient: Recipient, transferID: UUID, totalBytes: UInt64) {
+        let header = "POST /Upload HTTP/1.1\r\nHost: localhost\r\nUser-Agent: AirDrop/1.0\r\nTransferID: \(transferID.uuidString.uppercased())\r\nTotalBytes: \(totalBytes)\r\nContent-Type: application/x-dvzip\r\nConnection: keep-alive\r\nTransfer-Encoding: chunked\r\n\r\n"
 
         var fullPayload = Data(header.utf8)
         let totalCount = max(1, chunks.count)

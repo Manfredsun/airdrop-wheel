@@ -169,11 +169,11 @@ public struct AirDropOffer {
 
     public func request() throws -> Data {
         var plist: [String: Any] = [
-            "TransferID": ["id": transferID.uuidString],
+            "TransferID": ["id": transferID.uuidString.uppercased()],
             "SenderComputerName": senderName,
             "SenderModelName": senderModel,
             "SenderID": senderID,
-            "BundleID": "app.airdropwheel2.macos",
+            "BundleID": "com.apple.finder",
             "ConvertMediaFormats": false
         ]
 
@@ -213,55 +213,103 @@ public struct AirDropOffer {
 public final class AirDropCPIOArchive {
     public static let maximumChunkSize: Int = 65_536
 
-    public static func makeCPIOEntry(name: String, size: UInt64, mode: UInt32, inode: UInt32) -> Data {
-        let nameBytes = Data(name.utf8) + Data([0])
-        let fields: [UInt32] = [0, inode, mode, 0, 0, 1, 0, 0]
-        let header = "070707" + fields.map { String(format: "%06o", $0) }.joined()
-            + String(format: "%011o%06o%011llo", UInt32(nameBytes.count), size)
-        return Data(header.utf8) + nameBytes
+    private static func align4(_ n: Int) -> Int {
+        (n + 3) & ~3
     }
 
-    /// Builds the full streaming raw CPIO archive for a list of items.
+    /// SVR4 newc header (exact 110-byte length with 070701 magic and 13 8-digit hex fields).
+    private static func newcHeader(name: String, mode: UInt32, size: UInt64, ino: UInt32, mtime: UInt64) -> Data {
+        let namesize = name.utf8.count + 1
+        let fields: [UInt64] = [
+            UInt64(ino),
+            UInt64(mode),
+            0, // uid
+            0, // gid
+            1, // nlink
+            mtime & 0xFFFF_FFFF,
+            size & 0xFFFF_FFFF,
+            3, // major
+            0, // minor
+            0, // rmajor
+            0, // rminor
+            UInt64(namesize),
+            0  // check
+        ]
+        var str = "070701"
+        for f in fields {
+            str += String(format: "%08x", f)
+        }
+        return Data(str.utf8)
+    }
+
+    private static func appendNewcEntry(name: String, data: Data, mode: UInt32, ino: inout UInt32, mtime: UInt64, to archive: inout Data) {
+        let hdr = newcHeader(name: name, mode: mode, size: UInt64(data.count), ino: ino, mtime: mtime)
+        archive.append(hdr)
+        archive.append(Data(name.utf8) + Data([0]))
+        let nameTotal = hdr.count + name.utf8.count + 1
+        let namePad = align4(nameTotal) - nameTotal
+        if namePad > 0 {
+            archive.append(Data(repeating: 0, count: namePad))
+        }
+
+        if !data.isEmpty {
+            archive.append(data)
+            let dataPad = align4(data.count) - data.count
+            if dataPad > 0 {
+                archive.append(Data(repeating: 0, count: dataPad))
+            }
+        }
+        ino += 1
+    }
+
+    /// Builds the full streaming raw SVR4 newc CPIO archive for a list of items.
     public static func buildArchive(for items: [ValidatedTransferItem]) throws -> Data {
         var archive = Data()
         var inodeCounter: UInt32 = 1
+        let mtime = UInt64(Date().timeIntervalSince1970)
 
-        // Root entry "."
-        archive.append(makeCPIOEntry(name: ".", size: 0, mode: 0o40755, inode: inodeCounter))
-        inodeCounter += 1
+        // 1. Root entry "."
+        appendNewcEntry(name: ".", data: Data(), mode: 0o40755, ino: &inodeCounter, mtime: mtime, to: &archive)
 
+        // 2. Add each item
         for item in items {
             if item.isDirectory {
-                try appendDirectory(item.url, relativePrefix: "./" + item.displayName, to: &archive, inodeCounter: &inodeCounter)
+                try appendDirectory(item.url, relativePrefix: "./" + item.displayName, to: &archive, inodeCounter: &inodeCounter, mtime: mtime)
             } else {
                 let fileData = try Data(contentsOf: item.url, options: .mappedIfSafe)
-                archive.append(makeCPIOEntry(name: "./" + item.displayName, size: UInt64(fileData.count), mode: 0o100644, inode: inodeCounter))
-                archive.append(fileData)
-                inodeCounter += 1
+                appendNewcEntry(name: "./" + item.displayName, data: fileData, mode: 0o100644, ino: &inodeCounter, mtime: mtime, to: &archive)
             }
         }
 
-        // Trailer
-        archive.append(makeCPIOEntry(name: "TRAILER!!!", size: 0, mode: 0, inode: inodeCounter))
+        // 3. Trailer "TRAILER!!!"
+        appendNewcEntry(name: "TRAILER!!!", data: Data(), mode: 0, ino: &inodeCounter, mtime: mtime, to: &archive)
+
+        // 4. Pad entire archive to 512-byte block boundary
+        let blockPad = (512 - (archive.count % 512)) % 512
+        if blockPad > 0 {
+            archive.append(Data(repeating: 0, count: blockPad))
+        }
+
         return archive
     }
 
-    private static func appendDirectory(_ dirURL: URL, relativePrefix: String, to archive: inout Data, inodeCounter: inout UInt32) throws {
-        archive.append(makeCPIOEntry(name: relativePrefix, size: 0, mode: 0o40755, inode: inodeCounter))
-        inodeCounter += 1
+    private static func appendDirectory(_ dirURL: URL, relativePrefix: String, to archive: inout Data, inodeCounter: inout UInt32, mtime: UInt64) throws {
+        appendNewcEntry(name: relativePrefix, data: Data(), mode: 0o40755, ino: &inodeCounter, mtime: mtime, to: &archive)
 
-        let contents = try FileManager.default.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey], options: [.skipsHiddenFiles])
+        let contents = try FileManager.default.contentsOfDirectory(
+            at: dirURL,
+            includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey],
+            options: [.skipsHiddenFiles]
+        )
         for childURL in contents {
             let childName = childURL.lastPathComponent
             let childRel = relativePrefix + "/" + childName
             let vals = try childURL.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey])
             if vals.isDirectory == true {
-                try appendDirectory(childURL, relativePrefix: childRel, to: &archive, inodeCounter: &inodeCounter)
+                try appendDirectory(childURL, relativePrefix: childRel, to: &archive, inodeCounter: &inodeCounter, mtime: mtime)
             } else {
                 let childData = try Data(contentsOf: childURL, options: .mappedIfSafe)
-                archive.append(makeCPIOEntry(name: childRel, size: UInt64(childData.count), mode: 0o100644, inode: inodeCounter))
-                archive.append(childData)
-                inodeCounter += 1
+                appendNewcEntry(name: childRel, data: childData, mode: 0o100644, ino: &inodeCounter, mtime: mtime, to: &archive)
             }
         }
     }
