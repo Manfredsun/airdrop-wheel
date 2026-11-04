@@ -61,6 +61,12 @@ public struct DiscoverHTTPDecoder: Sendable {
         }
 
         let bodyStart = boundary.upperBound
+        if (100...199).contains(status) {
+            // Interim informational response (e.g. 100 Continue); discard header block and keep reading
+            buffer.removeSubrange(..<bodyStart)
+            return try append(Data(), eof: eof)
+        }
+
         let bodyBytes = Data(buffer[bodyStart...])
 
         if let encoding = headers["transfer-encoding"], encoding.lowercased() == "chunked" {
@@ -208,81 +214,49 @@ public struct AirDropOffer {
     }
 }
 
-// MARK: - CPIO & DVZip Streaming Archive Generator
+// MARK: - CPIO Streaming Archive Generator (POSIX ODC Format for Apple BOMCopier)
 
 public final class AirDropCPIOArchive {
     public static let maximumChunkSize: Int = 65_536
 
-    private static func align4(_ n: Int) -> Int {
-        (n + 3) & ~3
+    /// Creates an Apple-compatible POSIX ODC (070707) CPIO entry (exact 76-byte fixed octal header).
+    public static func odcEntry(name: String, data: Data, mode: UInt32, ino: UInt32, mtime: UInt64) -> Data {
+        let nameBytes = Data(name.utf8) + Data([0])
+        let fields: [UInt32] = [0, ino, mode, 0, 0, 1, 0]
+        var header = "070707" + fields.map { String(format: "%06o", $0) }.joined()
+        header += String(format: "%011llo%06o%011llo", mtime, UInt32(nameBytes.count), UInt64(data.count))
+        assert(header.utf8.count == 76, "ODC header must be exactly 76 ASCII bytes")
+        return Data(header.utf8) + nameBytes + data
     }
 
-    /// SVR4 newc header (exact 110-byte length with 070701 magic and 13 8-digit hex fields).
-    private static func newcHeader(name: String, mode: UInt32, size: UInt64, ino: UInt32, mtime: UInt64) -> Data {
-        let namesize = name.utf8.count + 1
-        let fields: [UInt64] = [
-            UInt64(ino),
-            UInt64(mode),
-            0, // uid
-            0, // gid
-            1, // nlink
-            mtime & 0xFFFF_FFFF,
-            size & 0xFFFF_FFFF,
-            3, // major
-            0, // minor
-            0, // rmajor
-            0, // rminor
-            UInt64(namesize),
-            0  // check
-        ]
-        var str = "070701"
-        for f in fields {
-            str += String(format: "%08x", f)
-        }
-        return Data(str.utf8)
-    }
-
-    private static func appendNewcEntry(name: String, data: Data, mode: UInt32, ino: inout UInt32, mtime: UInt64, to archive: inout Data) {
-        let hdr = newcHeader(name: name, mode: mode, size: UInt64(data.count), ino: ino, mtime: mtime)
-        archive.append(hdr)
-        archive.append(Data(name.utf8) + Data([0]))
-        let nameTotal = hdr.count + name.utf8.count + 1
-        let namePad = align4(nameTotal) - nameTotal
-        if namePad > 0 {
-            archive.append(Data(repeating: 0, count: namePad))
-        }
-
-        if !data.isEmpty {
-            archive.append(data)
-            let dataPad = align4(data.count) - data.count
-            if dataPad > 0 {
-                archive.append(Data(repeating: 0, count: dataPad))
-            }
-        }
-        ino += 1
-    }
-
-    /// Builds the full streaming raw SVR4 newc CPIO archive for a list of items.
+    /// Builds the full streaming raw POSIX ODC CPIO archive for a list of items.
     public static func buildArchive(for items: [ValidatedTransferItem]) throws -> Data {
         var archive = Data()
         var inodeCounter: UInt32 = 1
         let mtime = UInt64(Date().timeIntervalSince1970)
 
         // 1. Root entry "."
-        appendNewcEntry(name: ".", data: Data(), mode: 0o40755, ino: &inodeCounter, mtime: mtime, to: &archive)
+        archive.append(odcEntry(name: ".", data: Data(), mode: 0o40755, ino: inodeCounter, mtime: mtime))
+        inodeCounter += 1
 
         // 2. Add each item
         for item in items {
+            let accessStarted = item.url.startAccessingSecurityScopedResource()
+            defer {
+                if accessStarted { item.url.stopAccessingSecurityScopedResource() }
+            }
+
             if item.isDirectory {
                 try appendDirectory(item.url, relativePrefix: "./" + item.displayName, to: &archive, inodeCounter: &inodeCounter, mtime: mtime)
             } else {
                 let fileData = try Data(contentsOf: item.url, options: .mappedIfSafe)
-                appendNewcEntry(name: "./" + item.displayName, data: fileData, mode: 0o100644, ino: &inodeCounter, mtime: mtime, to: &archive)
+                archive.append(odcEntry(name: "./" + item.displayName, data: fileData, mode: 0o100644, ino: inodeCounter, mtime: mtime))
+                inodeCounter += 1
             }
         }
 
         // 3. Trailer "TRAILER!!!"
-        appendNewcEntry(name: "TRAILER!!!", data: Data(), mode: 0, ino: &inodeCounter, mtime: mtime, to: &archive)
+        archive.append(odcEntry(name: "TRAILER!!!", data: Data(), mode: 0, ino: inodeCounter, mtime: mtime))
 
         // 4. Pad entire archive to 512-byte block boundary
         let blockPad = (512 - (archive.count % 512)) % 512
@@ -294,7 +268,8 @@ public final class AirDropCPIOArchive {
     }
 
     private static func appendDirectory(_ dirURL: URL, relativePrefix: String, to archive: inout Data, inodeCounter: inout UInt32, mtime: UInt64) throws {
-        appendNewcEntry(name: relativePrefix, data: Data(), mode: 0o40755, ino: &inodeCounter, mtime: mtime, to: &archive)
+        archive.append(odcEntry(name: relativePrefix, data: Data(), mode: 0o40755, ino: inodeCounter, mtime: mtime))
+        inodeCounter += 1
 
         let contents = try FileManager.default.contentsOfDirectory(
             at: dirURL,
@@ -309,23 +284,26 @@ public final class AirDropCPIOArchive {
                 try appendDirectory(childURL, relativePrefix: childRel, to: &archive, inodeCounter: &inodeCounter, mtime: mtime)
             } else {
                 let childData = try Data(contentsOf: childURL, options: .mappedIfSafe)
-                appendNewcEntry(name: childRel, data: childData, mode: 0o100644, ino: &inodeCounter, mtime: mtime, to: &archive)
+                archive.append(odcEntry(name: childRel, data: childData, mode: 0o100644, ino: inodeCounter, mtime: mtime))
+                inodeCounter += 1
             }
         }
     }
 
-    /// Splits archive into DVZip stored chunks (4-byte length header with high bit 0x80000000).
-    public static func dvzipChunks(from rawArchive: Data) -> [Data] {
+    /// Splits archive into clean streaming chunk slices without adding fake corruption headers.
+    public static func makeStreamChunks(from rawArchive: Data, chunkSize: Int = maximumChunkSize) -> [Data] {
         var chunks: [Data] = []
         var offset = 0
         while offset < rawArchive.count {
-            let len = min(maximumChunkSize, rawArchive.count - offset)
-            let slice = rawArchive.subdata(in: offset..<offset+len)
-            var header = (UInt32(len) | 0x8000_0000).bigEndian
-            let chunkData = withUnsafeBytes(of: &header) { Data($0) } + slice
-            chunks.append(chunkData)
+            let len = min(chunkSize, rawArchive.count - offset)
+            chunks.append(rawArchive.subdata(in: offset..<offset+len))
             offset += len
         }
-        return chunks
+        return chunks.isEmpty ? [rawArchive] : chunks
+    }
+
+    /// Backward-compatible alias for chunk slicing
+    public static func dvzipChunks(from rawArchive: Data) -> [Data] {
+        makeStreamChunks(from: rawArchive)
     }
 }

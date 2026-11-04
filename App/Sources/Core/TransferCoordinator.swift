@@ -1,6 +1,9 @@
 import Foundation
 import Network
 import Security
+import os
+
+private let logger = Logger(subsystem: "app.airdropwheel2.macos", category: "TransferCoordinator")
 
 public enum TransferState: Equatable, Sendable {
     case idle
@@ -18,6 +21,7 @@ public enum TransferState: Equatable, Sendable {
 public final class TransferCoordinator: ObservableObject {
     @Published public private(set) var state: TransferState = .idle
 
+    private let logger = Logger(subsystem: "app.airdropwheel2.macos", category: "TransferCoordinator")
     private var activeConnection: NWConnection?
     private var transferID: UUID?
     private var currentDecoder = DiscoverHTTPDecoder()
@@ -89,6 +93,7 @@ public final class TransferCoordinator: ObservableObject {
 
     private func sendOffer(_ connection: NWConnection, payload: TransferPayload, recipient: Recipient, transferID: UUID) {
         state = .requestingAcceptance(recipientName: recipient.displayName)
+        logger.info("Sending /Ask offer to recipient \(recipient.displayName), transferID: \(transferID.uuidString)")
 
         do {
             let offer = AirDropOffer(transferID: transferID, payload: payload)
@@ -98,6 +103,7 @@ public final class TransferCoordinator: ObservableObject {
                 Task { @MainActor in
                     guard let self, !self.isCancelled else { return }
                     if let error {
+                        self.logger.error("Failed to send /Ask offer: \(error.localizedDescription)")
                         self.fail(recipient: recipient, reason: "發送請求失敗: \(error.localizedDescription)")
                         return
                     }
@@ -106,6 +112,7 @@ public final class TransferCoordinator: ObservableObject {
                 }
             })
         } catch {
+            logger.error("Failed to encode /Ask offer: \(error.localizedDescription)")
             fail(recipient: recipient, reason: "編碼請求時發生錯誤")
         }
     }
@@ -118,6 +125,7 @@ public final class TransferCoordinator: ObservableObject {
 
                 do {
                     if let response = try self.currentDecoder.append(data ?? Data(), eof: eof) {
+                        self.logger.info("Received /Ask response from \(recipient.displayName): status \(response.status)")
                         if response.status == 200 {
                             // Accepted by receiver!
                             self.state = .accepted(recipientName: recipient.displayName)
@@ -135,16 +143,22 @@ public final class TransferCoordinator: ObservableObject {
                             }
                         } else {
                             // Declined or rejected by receiver
+                            self.logger.info("Receiver \(recipient.displayName) declined or rejected the transfer (status: \(response.status))")
                             connection.cancel()
                             self.activeConnection = nil
                             self.state = .declined(recipientName: recipient.displayName)
                         }
-                    } else if error != nil {
+                    } else if let error {
+                        self.logger.error("Connection error waiting for /Ask response: \(error.localizedDescription)")
+                        self.fail(recipient: recipient, reason: "等候對方回應時連線中斷")
+                    } else if eof {
+                        self.logger.error("Connection closed by peer while waiting for /Ask response")
                         self.fail(recipient: recipient, reason: "等候對方回應時連線中斷")
                     } else {
                         self.readOfferResponse(connection, payload: payload, recipient: recipient, transferID: transferID)
                     }
                 } catch {
+                    self.logger.error("Failed to decode /Ask response: \(error.localizedDescription)")
                     self.fail(recipient: recipient, reason: "解析對方回應時發生錯誤")
                 }
             }
@@ -157,7 +171,7 @@ public final class TransferCoordinator: ObservableObject {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
                 let archive = try AirDropCPIOArchive.buildArchive(for: items)
-                let chunks = AirDropCPIOArchive.dvzipChunks(from: archive)
+                let chunks = AirDropCPIOArchive.makeStreamChunks(from: archive)
 
                 DispatchQueue.main.async {
                     guard let self, !self.isCancelled, self.activeConnection === connection else { return }
@@ -165,6 +179,7 @@ public final class TransferCoordinator: ObservableObject {
                 }
             } catch {
                 DispatchQueue.main.async {
+                    self?.logger.error("Failed to build CPIO archive: \(error.localizedDescription)")
                     self?.fail(recipient: recipient, reason: "封裝檔案時發生錯誤")
                 }
             }
@@ -172,35 +187,66 @@ public final class TransferCoordinator: ObservableObject {
     }
 
     private func sendChunkedUpload(_ connection: NWConnection, chunks: [Data], recipient: Recipient, transferID: UUID, totalBytes: UInt64) {
-        let header = "POST /Upload HTTP/1.1\r\nHost: localhost\r\nUser-Agent: AirDrop/1.0\r\nTransferID: \(transferID.uuidString.uppercased())\r\nTotalBytes: \(totalBytes)\r\nContent-Type: application/x-dvzip\r\nConnection: keep-alive\r\nTransfer-Encoding: chunked\r\n\r\n"
+        let header = "POST /Upload HTTP/1.1\r\nHost: localhost\r\nUser-Agent: AirDrop/1.0\r\nTransferID: \(transferID.uuidString.uppercased())\r\nTotalBytes: \(totalBytes)\r\nContent-Type: application/x-cpio\r\nConnection: keep-alive\r\nTransfer-Encoding: chunked\r\n\r\n"
 
-        var fullPayload = Data(header.utf8)
-        let totalCount = max(1, chunks.count)
+        logger.info("Starting chunked /Upload to \(recipient.displayName), totalBytes: \(totalBytes), chunksCount: \(chunks.count)")
+        self.state = .transferring(recipientName: recipient.displayName, progress: 0.05)
 
-        for (index, chunk) in chunks.enumerated() {
-            let hexLen = String(chunk.count, radix: 16)
-            fullPayload.append(Data("\(hexLen)\r\n".utf8))
-            fullPayload.append(chunk)
-            fullPayload.append(Data("\r\n".utf8))
-
-            let progress = Double(index + 1) / Double(totalCount)
-            self.state = .transferring(recipientName: recipient.displayName, progress: progress)
-        }
-
-        // Final zero-length chunk
-        fullPayload.append(Data("0\r\n\r\n".utf8))
-
-        connection.send(content: fullPayload, completion: .contentProcessed { [weak self] error in
+        // 1. Send HTTP request headers
+        connection.send(content: Data(header.utf8), completion: .contentProcessed { [weak self] error in
             Task { @MainActor in
                 guard let self, !self.isCancelled else { return }
                 if let error {
+                    self.logger.error("Failed to send /Upload header: \(error.localizedDescription)")
+                    self.fail(recipient: recipient, reason: "傳送檔案標頭失敗: \(error.localizedDescription)")
+                    return
+                }
+
+                // 2. Stream chunks sequentially
+                self.sendNextChunk(connection, chunks: chunks, index: 0, recipient: recipient)
+            }
+        })
+    }
+
+    private func sendNextChunk(_ connection: NWConnection, chunks: [Data], index: Int, recipient: Recipient) {
+        if index >= chunks.count {
+            // Final zero-length chunk
+            let zeroChunk = Data("0\r\n\r\n".utf8)
+            connection.send(content: zeroChunk, completion: .contentProcessed { [weak self] error in
+                Task { @MainActor in
+                    guard let self, !self.isCancelled else { return }
+                    if let error {
+                        self.logger.error("Failed to send final 0-chunk: \(error.localizedDescription)")
+                        self.fail(recipient: recipient, reason: "傳送檔案結尾失敗: \(error.localizedDescription)")
+                        return
+                    }
+
+                    self.logger.info("All chunks sent successfully, waiting for final /Upload receipt...")
+                    self.currentDecoder = DiscoverHTTPDecoder()
+                    self.readFinalUploadResponse(connection, recipient: recipient)
+                }
+            })
+            return
+        }
+
+        let chunk = chunks[index]
+        let hexLen = String(chunk.count, radix: 16)
+        var chunkPayload = Data("\(hexLen)\r\n".utf8)
+        chunkPayload.append(chunk)
+        chunkPayload.append(Data("\r\n".utf8))
+
+        connection.send(content: chunkPayload, completion: .contentProcessed { [weak self] error in
+            Task { @MainActor in
+                guard let self, !self.isCancelled else { return }
+                if let error {
+                    self.logger.error("Failed to send chunk #\(index): \(error.localizedDescription)")
                     self.fail(recipient: recipient, reason: "傳送檔案資料失敗: \(error.localizedDescription)")
                     return
                 }
 
-                // Read final HTTP 200 response from receiver
-                self.currentDecoder = DiscoverHTTPDecoder()
-                self.readFinalUploadResponse(connection, recipient: recipient)
+                let progress = Double(index + 1) / Double(chunks.count)
+                self.state = .transferring(recipientName: recipient.displayName, progress: progress)
+                self.sendNextChunk(connection, chunks: chunks, index: index + 1, recipient: recipient)
             }
         })
     }
@@ -212,6 +258,7 @@ public final class TransferCoordinator: ObservableObject {
                 guard let self, !self.isCancelled, self.activeConnection === connection else { return }
                 do {
                     if let response = try self.currentDecoder.append(data ?? Data(), eof: eof) {
+                        self.logger.info("Received final /Upload response: status \(response.status)")
                         connection.cancel()
                         self.activeConnection = nil
                         if response.status == 200 {
@@ -219,12 +266,17 @@ public final class TransferCoordinator: ObservableObject {
                         } else {
                             self.fail(recipient: recipient, reason: "接收端回報錯誤 (\(response.status))")
                         }
-                    } else if error != nil {
+                    } else if let error {
+                        self.logger.error("Network error reading final /Upload response: \(error.localizedDescription)")
                         self.fail(recipient: recipient, reason: "傳送完成後確認逾時")
+                    } else if eof {
+                        self.logger.error("Connection closed by peer before final /Upload response was received")
+                        self.fail(recipient: recipient, reason: "傳送完成後連線關閉")
                     } else {
                         self.readFinalUploadResponse(connection, recipient: recipient)
                     }
                 } catch {
+                    self.logger.error("Failed to parse final /Upload response: \(error.localizedDescription)")
                     self.fail(recipient: recipient, reason: "讀取接收確認時發生錯誤")
                 }
             }
@@ -232,6 +284,7 @@ public final class TransferCoordinator: ObservableObject {
     }
 
     private func fail(recipient: Recipient, reason: String) {
+        logger.error("Transfer failed for recipient \(recipient.displayName): \(reason)")
         activeConnection?.cancel()
         activeConnection = nil
         state = .failed(recipientName: recipient.displayName, reason: reason)

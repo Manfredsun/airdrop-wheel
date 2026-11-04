@@ -224,6 +224,15 @@ public enum TransferPayloadValidator {
                 return .failure(.icloudPlaceholder(fileURL.lastPathComponent))
             }
 
+            // Pre-flight read check to trigger macOS TCC consent prompt early (e.g. ~/Documents, ~/Desktop)
+            let accessStarted = fileURL.startAccessingSecurityScopedResource()
+            if let handle = try? FileHandle(forReadingFrom: fileURL) {
+                try? handle.close()
+            }
+            if accessStarted {
+                fileURL.stopAccessingSecurityScopedResource()
+            }
+
             items.append(ValidatedTransferItem(url: fileURL))
         }
 
