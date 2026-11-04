@@ -1,4 +1,4 @@
-# AirDrop Wheel 2 — 應用程式 Logo 資產規範
+# AirDrop Wheel — 應用程式 Logo 資產規範
 
 ## 原始圖案資訊
 

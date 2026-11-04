@@ -280,7 +280,7 @@ public struct WheelView: View {
         HStack(spacing: 7) {
             Image(systemName: "circle.grid.cross")
                 .foregroundColor(WheelTheme.accentColor(for: colorScheme))
-            Text("AirDrop Wheel 2")
+            Text("AirDrop Wheel")
                 .font(.system(size: 13, weight: .bold, design: .rounded))
                 .foregroundColor(WheelTheme.textColor(for: colorScheme))
             if model.isSearching {

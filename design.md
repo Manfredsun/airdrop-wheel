@@ -1,11 +1,11 @@
-# AirDrop Wheel 2 — 產品與技術架構規格 (design.md)
+# AirDrop Wheel — 產品與技術架構規格 (design.md)
 
 ## 1. 專案識別與位置
 
-- **專案名稱**：AirDrop Wheel 2
-- **應用程式名稱**：AirDrop Wheel 2
+- **專案名稱**：AirDrop Wheel
+- **應用程式名稱**：AirDrop Wheel
 - **專案根目錄**：單一根目錄倉庫結構（無多餘外層包裝目錄）
-- **Bundle Identifier**：`app.airdropwheel2.macos`
+- **Bundle Identifier**：`app.airdropwheel.macos`
 - **目標平台**：macOS 14.0+（支援 Apple Silicon 及 Intel 通用架構）
 - **程式語言**：Swift 5.0（Xcode 27.2+）
 - **應用程式類型**：一般 macOS 應用程式（Regular Activation Policy），執行時於 Dock 呈現圖示、支援 ⌘Tab 切換，並於系統選單列常駐快速控制入口。
@@ -35,7 +35,7 @@
   - 扇區與 Hub 動態：扇區具備 Hover 高亮、外弧光暈；中心 Hub 動態放大顯示目標裝置名稱與圖示。
   - 視窗管理：輪盤採輕量層次浮動面板，平滑彈性縮放浮現，支援滾輪、Tab / Q / E 快速切換裝置分頁。
 - **UI 幾何與色彩風格（混合自適應模式）**：
-  - **外觀色系自適應**：融合 FormatWheel 經典街機輪盤與 AirDrop Wheel 2 品牌識別：
+  - **外觀色系自適應**：融合 FormatWheel 經典街機輪盤與 AirDrop Wheel 品牌識別：
     - **深色模式**：深藍半透明毛玻璃環身（`#003D6C` 混合底色）+ 米白字體／放射刻度線 + 電光藍（`#00B4D8`）徑向漸層與外弧亮環。
     - **淺色模式**：米白半透明毛玻璃環身（`#FEF6EA` 混合底色）+ 深藍幾何字體／放射刻度線 + 海藍漸層與外弧亮環。
   - **全螢幕沉浸式覆蓋**：全螢幕鋪設 35% 柔和暗化層，游標在全螢幕甩動均在極座標角度判定範圍內，解決邊界死角問題。

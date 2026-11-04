@@ -1,5 +1,5 @@
 /* ==========================================================================
-   AirDrop Wheel 2 — Interactive Demo & Application Logic
+   AirDrop Wheel — 互動展示模擬器與網頁核心邏輯 (app.js)
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* --------------------------------------------------------------------------
-   1. Theme Toggle
+   1. 深淺色模式切換 (Theme Toggle)
    -------------------------------------------------------------------------- */
 function initTheme() {
   const toggleBtn = document.getElementById("theme-toggle");
@@ -31,17 +31,17 @@ function initTheme() {
 }
 
 /* --------------------------------------------------------------------------
-   2. SVG Radial Wheel Generator (8 Sectors)
+   2. 8 扇區 SVG 徑向輪盤生成器 (Radial Wheel Generator)
    -------------------------------------------------------------------------- */
 const RECIPIENTS = [
-  { name: "Manfred's iPhone", glyph: "📱", model: "iPhone 16 Pro" },
-  { name: "Studio MacBook Pro", glyph: "💻", model: "M3 Max" },
-  { name: "Living Room iPad", glyph: "📱", model: "iPad Pro M4" },
-  { name: "Office Mac mini", glyph: "🖥️", model: "M2 Pro" },
-  { name: "Designer MacBook Air", glyph: "💻", model: "M3" },
-  { name: "Guest iPhone", glyph: "📱", model: "iPhone 15" },
+  { name: "Manfred 的 iPhone", glyph: "📱", model: "iPhone 16 Pro" },
+  { name: "錄音室 MacBook Pro", glyph: "💻", model: "M3 Max" },
+  { name: "客廳 iPad Pro", glyph: "📱", model: "iPad Pro M4" },
+  { name: "辦公室 Mac mini", glyph: "🖥️", model: "M2 Pro" },
+  { name: "設計師 MacBook Air", glyph: "💻", model: "M3" },
+  { name: "訪客 iPhone", glyph: "📱", model: "iPhone 15" },
   { name: "Studio Display Mac", glyph: "🖥️", model: "Mac Studio" },
-  { name: "Nearby Device", glyph: "🔍", model: "Discovering..." }
+  { name: "附近新裝置", glyph: "🔍", model: "搜尋中..." }
 ];
 
 let activeSectorIndex = -1;
@@ -58,7 +58,6 @@ function initRadialWheel() {
   sectorsGroup.innerHTML = "";
 
   for (let i = 0; i < numSectors; i++) {
-    // Offset by -π/2 - sectorAngle/2 to align Sector 0 at top-right
     const startAngle = i * sectorAngle - Math.PI / 2 - sectorAngle / 2;
     const endAngle = startAngle + sectorAngle;
 
@@ -70,7 +69,6 @@ function initRadialWheel() {
     path.setAttribute("data-index", i);
     path.id = `sector-${i}`;
 
-    // Sector Text / Icon coordinates (mid radius)
     const midAngle = (startAngle + endAngle) / 2;
     const midR = (innerR + outerR) / 2;
     const textX = midR * Math.cos(midAngle);
@@ -86,13 +84,12 @@ function initRadialWheel() {
     label.setAttribute("x", textX);
     label.setAttribute("y", textY + 12);
     label.setAttribute("class", "wheel-sector-label");
-    label.textContent = truncateString(RECIPIENTS[i].name, 12);
+    label.textContent = truncateString(RECIPIENTS[i].name, 10);
 
     sectorsGroup.appendChild(path);
     sectorsGroup.appendChild(glyph);
     sectorsGroup.appendChild(label);
 
-    // Mouse over sector directly
     path.addEventListener("mouseenter", () => selectSector(i));
     path.addEventListener("mouseleave", () => unselectSector(i));
   }
@@ -164,7 +161,7 @@ function unselectSector(index) {
 }
 
 /* --------------------------------------------------------------------------
-   3. Drag & Drop Engine (Mouse / Touch)
+   3. 檔案拖曳手勢引擎 (Drag & Drop Engine)
    -------------------------------------------------------------------------- */
 function initDragAndDrop() {
   const draggableFile = document.getElementById("draggable-file");
@@ -173,7 +170,7 @@ function initDragAndDrop() {
   if (!draggableFile || !wheelStage) return;
 
   draggableFile.addEventListener("dragstart", (e) => {
-    e.dataTransfer.setData("text/plain", "Project_Pitch.pdf");
+    e.dataTransfer.setData("text/plain", "專案提案簡報.pdf");
     e.dataTransfer.effectAllowed = "copy";
   });
 
@@ -196,7 +193,7 @@ function initDragAndDrop() {
     }
   });
 
-  // Touch Support for Mobile
+  // 行動裝置觸控支援
   draggableFile.addEventListener("touchmove", (e) => {
     const touch = e.touches[0];
     detectSectorFromCoords(touch.clientX, touch.clientY);
@@ -221,7 +218,7 @@ function detectSectorFromCoords(clientX, clientY) {
   const dy = clientY - centerY;
   const distance = Math.sqrt(dx * dx + dy * dy);
 
-  // Deadzone (inside hub radius)
+  // 中心死區 (Deadzone)
   if (distance < 75 || distance > 260) {
     if (activeSectorIndex !== -1) {
       unselectSector(activeSectorIndex);
@@ -229,9 +226,8 @@ function detectSectorFromCoords(clientX, clientY) {
     return;
   }
 
-  // Calculate Polar Angle (0 to 2π)
-  let angle = Math.atan2(dy, dx); // -π to +π
-  // Shift to align with SVG sectors (startAngle = -π/2 - sectorAngle/2)
+  // 極坐標角度計算
+  let angle = Math.atan2(dy, dx);
   const sectorAngle = (2 * Math.PI) / 8;
   let normalizedAngle = angle + Math.PI / 2 + sectorAngle / 2;
   if (normalizedAngle < 0) normalizedAngle += 2 * Math.PI;
@@ -244,7 +240,7 @@ function detectSectorFromCoords(clientX, clientY) {
 }
 
 /* --------------------------------------------------------------------------
-   4. Simulated Silent Transfer HUD
+   4. 靜音傳送進度 HUD 模擬器
    -------------------------------------------------------------------------- */
 let isTransferring = false;
 
@@ -261,25 +257,25 @@ function triggerTransferSimulation(recipient) {
   if (!hud) return;
 
   hud.style.display = "block";
-  hudStatusText.textContent = `Connecting to ${recipient.name}...`;
+  hudStatusText.textContent = `正在連線至 ${recipient.name}...`;
   hudProgressBar.style.width = "0%";
   hudPercent.textContent = "0%";
-  hudSpeed.textContent = "Connecting (TLS Leaf Pinning)...";
+  hudSpeed.textContent = "TLS 葉憑證鎖定驗證中...";
 
   let progress = 0;
   const interval = setInterval(() => {
-    progress += Math.floor(Math.random() * 15) + 10;
+    progress += Math.floor(Math.random() * 15) + 12;
     if (progress > 100) progress = 100;
 
     hudProgressBar.style.width = `${progress}%`;
     hudPercent.textContent = `${progress}%`;
-    hudStatusText.textContent = `Streaming to ${recipient.name}...`;
-    hudSpeed.textContent = `${(Math.random() * 12 + 42).toFixed(1)} MB/s`;
+    hudStatusText.textContent = `正在透過 AWDL 串流至 ${recipient.name}...`;
+    hudSpeed.textContent = `${(Math.random() * 12 + 45).toFixed(1)} MB/s`;
 
     if (progress === 100) {
       clearInterval(interval);
-      hudStatusText.textContent = `✓ Sent Successfully to ${recipient.name}`;
-      hudSpeed.textContent = "Finished in 1.4s (Total Silence)";
+      hudStatusText.textContent = `✓ 已成功發送至 ${recipient.name}`;
+      hudSpeed.textContent = "傳輸完成（完全靜音）";
 
       setTimeout(() => {
         hud.style.display = "none";
@@ -293,7 +289,7 @@ function triggerTransferSimulation(recipient) {
 }
 
 /* --------------------------------------------------------------------------
-   5. Installation Tabs
+   5. 安裝切換標籤 (Installation Tabs)
    -------------------------------------------------------------------------- */
 function initTabs() {
   const tabs = document.querySelectorAll(".tab-btn");
@@ -311,7 +307,7 @@ function initTabs() {
 }
 
 /* --------------------------------------------------------------------------
-   6. Copy Command Button
+   6. 複製指令按鈕 (Copy Command Button)
    -------------------------------------------------------------------------- */
 function initCopyButton() {
   const copyBtn = document.getElementById("copy-btn");
@@ -322,10 +318,10 @@ function initCopyButton() {
 
   copyBtn.addEventListener("click", () => {
     navigator.clipboard.writeText(installCmd.textContent).then(() => {
-      copyLabel.textContent = "Copied!";
+      copyLabel.textContent = "已複製！";
       copyBtn.style.background = "#10B981";
       setTimeout(() => {
-        copyLabel.textContent = "Copy";
+        copyLabel.textContent = "複製";
         copyBtn.style.background = "";
       }, 2000);
     });

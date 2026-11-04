@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Create a report to help us improve AirDrop Wheel 2
+about: Create a report to help us improve AirDrop Wheel
 title: '[BUG] '
 labels: ['bug', 'triage']
 assignees: ''
@@ -24,7 +24,7 @@ A clear and concise description of what you expected to happen.
 - Mac Model: [e.g. MacBook Pro 16" M3 Max, Mac mini M2, Intel iMac]
 - Target Recipient Device: [e.g. iPhone 15 Pro (iOS 17.5), MacBook Air M1]
 - Recipient AirDrop Mode: [e.g. Everyone for 10 minutes]
-- AirDrop Wheel 2 Version / Commit Hash: [e.g. v2.0 or commit f8d99c0]
+- AirDrop Wheel Version / Commit Hash: [e.g. v1.0 or commit hash]
 
 **Permissions Granted:**
 - [ ] Accessibility (`AXIsProcessTrusted`)
@@ -32,7 +32,7 @@ A clear and concise description of what you expected to happen.
 - [ ] Full Disk Access (if sending protected files)
 
 **Console / Terminal Logs (if applicable)**
-If available, paste any relevant logs from Console.app (filtered by `subsystem:app.airdropwheel2.macos`).
+If available, paste any relevant logs from Console.app (filtered by `subsystem:app.airdropwheel.macos`).
 
 ```text
 (paste logs here)

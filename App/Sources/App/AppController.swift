@@ -88,7 +88,7 @@ public final class AppController: ObservableObject {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
-        panel.prompt = "以 AirDrop Wheel 2 傳送"
+        panel.prompt = "以 AirDrop Wheel 傳送"
 
         NSApp.activate(ignoringOtherApps: true)
         panel.begin { [weak self] response in

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="Design/Logo/magnific__design-a-minimalist-japaneseinspired-logo-for-a-ma__78247.png" alt="AirDrop Wheel 2 Logo" width="160" height="160" style="border-radius: 36px; box-shadow: 0 12px 32px rgba(0,0,0,0.15);" />
+  <img src="Design/Logo/magnific__design-a-minimalist-japaneseinspired-logo-for-a-ma__78247.png" alt="AirDrop Wheel Logo" width="160" height="160" style="border-radius: 36px; box-shadow: 0 12px 32px rgba(0,0,0,0.15);" />
 </p>
 
-<h1 align="center">AirDrop Wheel 2</h1>
+<h1 align="center">AirDrop Wheel</h1>
 
 <p align="center">
   <strong>FormatWheel 徑向輪盤操作哲學 ✕ 原生純 Swift AirDrop 傳輸引擎</strong><br>
@@ -61,11 +61,11 @@
 
 ## 🔒 系統權限與設定指南
 
-為發揮全局滑鼠拖曳與檔案發送功能，AirDrop Wheel 2 需要以下系統授權：
+為發揮全局滑鼠拖曳與檔案發送功能，AirDrop Wheel 需要以下系統授權：
 
 1. **輔助使用權限 (`AXIsProcessTrusted`)**：
    用於全域監聽滑鼠座標與拖曳檔案時的 <kbd>⌃ Control</kbd> 快速叫出熱鍵。
-   - 前往 *系統設定 → 隱私權與安全性 → 輔助使用 → 勾選 AirDrop Wheel 2*。
+   - 前往 *系統設定 → 隱私權與安全性 → 輔助使用 → 勾選 AirDrop Wheel*。
 2. **區域網絡權限 (Local Network)**：
    用於透過 AWDL 與 mDNS 搜尋附近的 AirDrop 裝置。
 3. **完全磁碟取用權限 (選填)**：
@@ -77,7 +77,7 @@
 
 ### 方式一：下載現成編譯發行版
 
-1. 前往 [GitHub Releases](https://github.com/Manfredsun/airdrop-wheel/releases) 下載最新版的 `AirDrop Wheel 2.app`。
+1. 前往 [GitHub Releases](https://github.com/Manfredsun/airdrop-wheel/releases) 下載最新版的 `AirDrop Wheel.app`。
 2. 將應用程式拖入 `/Applications`（應用程式）目錄。
 3. 啟動並依提示授予輔助使用與區域網絡權限。
 4. 拖曳檔案並按住 <kbd>⌃ Control</kbd> 即可呼喚輪盤！
@@ -96,13 +96,13 @@ bash scripts/build_release.sh
 ```
 
 編譯完成並已通過代碼簽署之產物將位於：
-`dist/AirDrop Wheel 2.app`
+`dist/AirDrop Wheel.app`
 
 ---
 
 ## 📐 系統技術架構
 
-AirDrop Wheel 2 採分層架構設計：
+AirDrop Wheel 採分層架構設計：
 
 ```text
   [ 使用者於 Finder 或桌面拖曳檔案 ]
@@ -158,6 +158,6 @@ AirDrop Wheel 2 採分層架構設計：
 
 ## 📄 授權條款與版權宣告
 
-- **AirDrop Wheel 2** 主專案代碼採用 [MIT License](LICENSE) 開源。Copyright (c) 2026 Manfred Shen (申承羲)。
+- **AirDrop Wheel** 主專案代碼採用 [MIT License](LICENSE) 開源。Copyright (c) 2026 Manfred Shen (申承羲)。
 - **FormatWheel 致敬宣告**：徑向輪盤操作哲學與甩送互動參考 FormatWheel（Copyright (c) 2026 Elise616，MIT 授權）。
-- **品牌資產宣告**：專案名稱「AirDrop Wheel 2」及 Logo 原始圖檔為創作者專屬著作資產，保留一切權利。
+- **品牌資產宣告**：專案名稱「AirDrop Wheel」及 Logo 原始圖檔為創作者專屬著作資產，保留一切權利。

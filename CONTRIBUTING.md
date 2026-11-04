@@ -1,6 +1,6 @@
-# Contributing to AirDrop Wheel 2
+# Contributing to AirDrop Wheel
 
-Thank you for your interest in contributing to **AirDrop Wheel 2**! We welcome bug fixes, documentation enhancements, UI polish, and performance optimizations.
+Thank you for your interest in contributing to **AirDrop Wheel**! We welcome bug fixes, documentation enhancements, UI polish, and performance optimizations.
 
 Before starting, please take a moment to read through these guidelines to ensure smooth collaboration.
 
@@ -8,7 +8,7 @@ Before starting, please take a moment to read through these guidelines to ensure
 
 ## 🏛️ Inviolable Architectural Principles (Core Guardrails)
 
-AirDrop Wheel 2 was created with an uncompromising design philosophy. Every pull request is expected to honor these core principles:
+AirDrop Wheel was created with an uncompromising design philosophy. Every pull request is expected to honor these core principles:
 
 1. **Total Silence (完全靜音)**:
    - **Zero sound files**: Do not add `.wav`, `.mp3`, `.aiff`, or any audio assets.
@@ -26,7 +26,7 @@ AirDrop Wheel 2 was created with an uncompromising design philosophy. Every pull
 
 ## 🛠️ Development Setup
 
-AirDrop Wheel 2 is designed with zero third-party dependencies (no CocoaPods, Carthage, or SPM packages).
+AirDrop Wheel is designed with zero third-party dependencies (no CocoaPods, Carthage, or SPM packages).
 
 ### Prerequisites
 - macOS 14.0 Sonoma or later.
@@ -34,11 +34,11 @@ AirDrop Wheel 2 is designed with zero third-party dependencies (no CocoaPods, Ca
 - Python 3 (for project generation tools).
 
 ### Building & Running
-You can open `AirDrop Wheel 2.xcodeproj` directly in Xcode, or build from the command line:
+You can open `AirDrop Wheel.xcodeproj` directly in Xcode, or build from the command line:
 
 ```bash
 # Debug build
-xcodebuild -project "AirDrop Wheel 2.xcodeproj" -scheme "AirDrop Wheel 2" -configuration Debug build
+xcodebuild -project "AirDrop Wheel.xcodeproj" -scheme "AirDrop Wheel" -configuration Debug build
 
 # Release build & package to dist/
 bash scripts/build_release.sh

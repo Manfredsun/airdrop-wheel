@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic Xcode project generator for AirDrop Wheel 2."""
+"""Deterministic Xcode project generator for AirDrop Wheel."""
 from pathlib import Path
 import hashlib
 import json
@@ -42,7 +42,7 @@ for path in resources:
     relative = str(path.relative_to(root))
     refs[relative] = add(relative, "PBXFileReference", path=relative, sourceTree="<group>", lastKnownFileType="folder.assetcatalog")
 
-app_product = add("product/app", "PBXFileReference", explicitFileType="wrapper.application", path="AirDrop Wheel 2.app", sourceTree="BUILT_PRODUCTS_DIR")
+app_product = add("product/app", "PBXFileReference", explicitFileType="wrapper.application", path="AirDrop Wheel.app", sourceTree="BUILT_PRODUCTS_DIR")
 products = add("products", "PBXGroup", children=[app_product], name="Products", sourceTree="<group>")
 main = add("main", "PBXGroup", children=list(refs.values()) + [products], sourceTree="<group>")
 
@@ -69,8 +69,8 @@ common = dict(
 
 app_settings = dict(
     common,
-    PRODUCT_NAME="AirDrop Wheel 2",
-    PRODUCT_BUNDLE_IDENTIFIER="app.airdropwheel2.macos",
+    PRODUCT_NAME="AirDrop Wheel",
+    PRODUCT_BUNDLE_IDENTIFIER="app.airdropwheel.macos",
     INFOPLIST_FILE="Config/Info.plist",
     GENERATE_INFOPLIST_FILE="NO",
     ASSETCATALOG_COMPILER_APPICON_NAME="AppIcon",
@@ -92,8 +92,8 @@ add("app", "PBXNativeTarget",
     ],
     buildRules=[],
     dependencies=[],
-    name="AirDrop Wheel 2",
-    productName="AirDrop Wheel 2",
+    name="AirDrop Wheel",
+    productName="AirDrop Wheel",
     productReference=app_product,
     productType="com.apple.product-type.application"
 )
@@ -121,16 +121,16 @@ def pbx(value, indent=0):
         return "(" + ", ".join(pbx(v, indent) for v in value) + ")"
     return json.dumps(str(value))
 
-project = root / "AirDrop Wheel 2.xcodeproj"
+project = root / "AirDrop Wheel.xcodeproj"
 project.mkdir(exist_ok=True)
 (project / "project.pbxproj").write_text("// !$*UTF8*$!\n" + pbx(dict(archiveVersion=1, classes={}, objectVersion=56, objects=objects, rootObject=project_id)) + "\n")
 
 scheme = project / "xcshareddata/xcschemes"
 scheme.mkdir(parents=True, exist_ok=True)
 
-app_ref = f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{app_id}" BuildableName="AirDrop Wheel 2.app" BlueprintName="AirDrop Wheel 2" ReferencedContainer="container:AirDrop Wheel 2.xcodeproj"/>'
+app_ref = f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{app_id}" BuildableName="AirDrop Wheel.app" BlueprintName="AirDrop Wheel" ReferencedContainer="container:AirDrop Wheel.xcodeproj"/>'
 
-(scheme / "AirDrop Wheel 2.xcscheme").write_text(f'''<?xml version="1.0" encoding="UTF-8"?>
+(scheme / "AirDrop Wheel.xcscheme").write_text(f'''<?xml version="1.0" encoding="UTF-8"?>
 <Scheme LastUpgradeVersion="2720" version="1.3">
 <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">{app_ref}</BuildActionEntry></BuildActionEntries></BuildAction>
 <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES"><Testables></Testables></TestAction>
@@ -139,4 +139,4 @@ app_ref = f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifie
 <AnalyzeAction buildConfiguration="Debug"/><ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>
 </Scheme>''')
 
-print("Generated AirDrop Wheel 2.xcodeproj successfully")
+print("Generated AirDrop Wheel.xcodeproj successfully")

@@ -1,6 +1,6 @@
 # Technical Architecture & AirDrop Protocol Specification
 
-This document provides a comprehensive technical overview of **AirDrop Wheel 2**, covering the peer discovery mechanism, TLS leaf certificate pinning, network transport endpoints, archive streaming formats, and radial UI geometry.
+This document provides a comprehensive technical overview of **AirDrop Wheel**, covering the peer discovery mechanism, TLS leaf certificate pinning, network transport endpoints, archive streaming formats, and radial UI geometry.
 
 ---
 
@@ -47,7 +47,7 @@ This document provides a comprehensive technical overview of **AirDrop Wheel 2**
 
 ## 2. AirDrop Protocol & Network Engine
 
-AirDrop Wheel 2 uses a pure Swift networking stack built on Apple's `Network.framework` (`NWBrowser`, `NWConnection`), with zero external dependencies.
+AirDrop Wheel uses a pure Swift networking stack built on Apple's `Network.framework` (`NWBrowser`, `NWConnection`), with zero external dependencies.
 
 ### 2.1 Apple Wireless Direct Link (AWDL) Binding
 AirDrop on Apple devices operates over **AWDL** (`awdl0`), a proprietary Wi-Fi peer-to-peer mesh interface.
@@ -71,7 +71,7 @@ AirDrop on Apple devices operates over **AWDL** (`awdl0`), a proprietary Wi-Fi p
 ### 2.3 TLS Leaf Certificate Pinning
 To maintain security without querying Apple's private identity cloud:
 1. When connecting to the peer's Link-Local HTTPS port, a self-signed or Apple-ad-hoc TLS certificate is presented.
-2. During the initial `POST /Discover` exchange, AirDrop Wheel 2 extracts and pins the remote peer's **Leaf Certificate Public Key**.
+2. During the initial `POST /Discover` exchange, AirDrop Wheel extracts and pins the remote peer's **Leaf Certificate Public Key**.
 3. For subsequent connections (`/Ask` and `/Upload`), the TLS validation verifies that the presented certificate matches the pinned key.
 4. This ensures that even on an untrusted Wi-Fi channel, no man-in-the-middle entity can hijack the session between approval and payload transfer.
 
@@ -80,7 +80,7 @@ To maintain security without querying Apple's private identity cloud:
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Wheel as AirDrop Wheel 2
+    participant Wheel as AirDrop Wheel
     participant Peer as Target Device (iPhone / Mac)
 
     Note over Wheel,Peer: AWDL Link Established (IPv6 fe80::%awdl0)
@@ -105,7 +105,7 @@ sequenceDiagram
 To ensure interoperability with Apple's native AirDrop daemon (`sharingd`), files must be packed in a compliant CPIO archive.
 
 ### 3.1 POSIX ODC & SVR4 newc Compliance
-AirDrop Wheel 2 implements pure Swift byte-level packaging:
+AirDrop Wheel implements pure Swift byte-level packaging:
 - **Header**: Standard POSIX ODC (Octal format `070707`) or SVR4 newc (`070701`).
 - **File Mode**: Regular file permissions (e.g., `0100644`).
 - **Trailer**: An explicit `TRAILER!!!` record terminating the archive.
@@ -156,7 +156,7 @@ $$\theta = \text{atan2}(\Delta y, \Delta x)$$
 
 ## 5. Total Silence Invariant
 
-AirDrop Wheel 2 enforces an architectural rule of **Total Silence**:
+AirDrop Wheel enforces an architectural rule of **Total Silence**:
 - No `.wav`, `.mp3`, `.m4a`, or `.aiff` files exist in the repository.
 - No system sound libraries (`AVFoundation`, `AudioToolbox`, `AppKit.NSSound`, `AudioServicesPlaySystemSound`) are linked.
 - All state transitions (accepted, uploading, completed, declined, failed) are conveyed exclusively through visual micro-animations in the lightweight `TransferHUD`.

@@ -13,11 +13,11 @@ We provide security updates for the current major release branch:
 
 ## Threat Model & Security Scope
 
-AirDrop Wheel 2 interacts with Apple's peer-to-peer wireless protocol (AWDL) and HTTP-over-TLS microservices on local network endpoints.
+AirDrop Wheel interacts with Apple's peer-to-peer wireless protocol (AWDL) and HTTP-over-TLS microservices on local network endpoints.
 
-### Key Security Guardrails in AirDrop Wheel 2:
+### Key Security Guardrails in AirDrop Wheel:
 1. **Target Mode**:
-   AirDrop Wheel 2 communicates only with endpoints currently advertising in "Everyone for 10 minutes" mode. It does not attempt to brute-force or spoof Apple ID cryptographic identities.
+   AirDrop Wheel communicates only with endpoints currently advertising in "Everyone for 10 minutes" mode. It does not attempt to brute-force or spoof Apple ID cryptographic identities.
 2. **Recipient Consent**:
    All transfers strictly await recipient user interaction. No data bytes are streamed until the receiving device explicitly accepts the transfer prompt on screen.
 3. **TLS Leaf Certificate Pinning**:
@@ -29,7 +29,7 @@ AirDrop Wheel 2 interacts with Apple's peer-to-peer wireless protocol (AWDL) and
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability or sensitive bug in AirDrop Wheel 2, please **do not open a public issue**.
+If you discover a security vulnerability or sensitive bug in AirDrop Wheel, please **do not open a public issue**.
 
 Instead, please report it via one of the following methods:
 

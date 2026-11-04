@@ -121,8 +121,8 @@
 				"LD_RUNPATH_SEARCH_PATHS" = "$(inherited) @executable_path/../Frameworks";
 				"MACOSX_DEPLOYMENT_TARGET" = "14.0";
 				"MARKETING_VERSION" = "0.1.0";
-				"PRODUCT_BUNDLE_IDENTIFIER" = "app.airdropwheel2.macos";
-				"PRODUCT_NAME" = "AirDrop Wheel 2";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "app.airdropwheel.macos";
+				"PRODUCT_NAME" = "AirDrop Wheel";
 				"SDKROOT" = "macosx";
 				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
 				"SWIFT_STRICT_CONCURRENCY" = "targeted";
@@ -152,7 +152,7 @@
 		"57E22DF2FCF18E685BEEF469" = {
 			"explicitFileType" = "wrapper.application";
 			"isa" = "PBXFileReference";
-			"path" = "AirDrop Wheel 2.app";
+			"path" = "AirDrop Wheel.app";
 			"sourceTree" = "BUILT_PRODUCTS_DIR";
 		};
 		"5B1E0549B16F551C098D7ADF" = {
@@ -193,8 +193,8 @@
 				"LD_RUNPATH_SEARCH_PATHS" = "$(inherited) @executable_path/../Frameworks";
 				"MACOSX_DEPLOYMENT_TARGET" = "14.0";
 				"MARKETING_VERSION" = "0.1.0";
-				"PRODUCT_BUNDLE_IDENTIFIER" = "app.airdropwheel2.macos";
-				"PRODUCT_NAME" = "AirDrop Wheel 2";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "app.airdropwheel.macos";
+				"PRODUCT_NAME" = "AirDrop Wheel";
 				"SDKROOT" = "macosx";
 				"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "DEBUG";
 				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
@@ -238,8 +238,8 @@
 			"buildRules" = ();
 			"dependencies" = ();
 			"isa" = "PBXNativeTarget";
-			"name" = "AirDrop Wheel 2";
-			"productName" = "AirDrop Wheel 2";
+			"name" = "AirDrop Wheel";
+			"productName" = "AirDrop Wheel";
 			"productReference" = "57E22DF2FCF18E685BEEF469";
 			"productType" = "com.apple.product-type.application";
 		};

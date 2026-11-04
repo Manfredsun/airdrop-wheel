@@ -30,10 +30,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Application Menu
         let appMenuItem = NSMenuItem()
-        let appMenu = NSMenu(title: "AirDrop Wheel 2")
+        let appMenu = NSMenu(title: "AirDrop Wheel")
 
         let aboutItem = NSMenuItem(
-            title: "關於 AirDrop Wheel 2",
+            title: "關於 AirDrop Wheel",
             action: #selector(showAbout),
             keyEquivalent: ""
         )
@@ -53,7 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(NSMenuItem.separator())
 
         let hideItem = NSMenuItem(
-            title: "隱藏 AirDrop Wheel 2",
+            title: "隱藏 AirDrop Wheel",
             action: #selector(NSApplication.hide(_:)),
             keyEquivalent: "h"
         )
@@ -77,7 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(NSMenuItem.separator())
 
         let quitItem = NSMenuItem(
-            title: "結束 AirDrop Wheel 2",
+            title: "結束 AirDrop Wheel",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )
@@ -94,11 +94,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = item.button {
             let symbolImage = NSImage(
                 systemSymbolName: "circle.grid.cross",
-                accessibilityDescription: "AirDrop Wheel 2"
+                accessibilityDescription: "AirDrop Wheel"
             )
             symbolImage?.isTemplate = true
             button.image = symbolImage
-            button.toolTip = "AirDrop Wheel 2"
+            button.toolTip = "AirDrop Wheel"
         }
 
         let menu = NSMenu()
@@ -142,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
 
         let aboutItem = NSMenuItem(
-            title: "關於 AirDrop Wheel 2",
+            title: "關於 AirDrop Wheel",
             action: #selector(showAbout),
             keyEquivalent: ""
         )
@@ -152,7 +152,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
 
         let quitItem = NSMenuItem(
-            title: "結束 AirDrop Wheel 2",
+            title: "結束 AirDrop Wheel",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )
@@ -171,7 +171,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showAbout() {
         NSApp.activate(ignoringOtherApps: true)
         let options: [NSApplication.AboutPanelOptionKey: Any] = [
-            .applicationName: "AirDrop Wheel 2",
+            .applicationName: "AirDrop Wheel",
             .version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
         ]
         NSApp.orderFrontStandardAboutPanel(options)

@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="auto">
+<html lang="zh-Hant" data-theme="auto">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AirDrop Wheel 2 — Radial File Dropping for macOS</title>
-  <meta name="description" content="A high-performance, pure Swift macOS utility combining FormatWheel radial gestures with native AirDrop peer-to-peer transmission.">
+  <title>AirDrop Wheel — 專為 macOS 打造的徑向輪盤 AirDrop 檔案傳送工具</title>
+  <meta name="description" content="結合 FormatWheel 徑向輪盤操作哲學與原生純 Swift 傳輸引擎的 macOS 應用程式。選取檔案、甩入扇區、放手即傳。">
   <link rel="icon" type="image/png" href="assets/app-icon.png">
 
   <!-- OpenGraph / Social Meta Tags -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="AirDrop Wheel 2 — Radial File Dropping for macOS">
-  <meta property="og:description" content="Hold ⌃ Control, flick into a sector, and send. Built in pure Swift on Network.framework & AWDL. Zero sound, zero dependencies.">
+  <meta property="og:title" content="AirDrop Wheel — 專為 macOS 打造的徑向輪盤 AirDrop 檔案傳送工具">
+  <meta property="og:description" content="按住 ⌃ Control，甩入扇區，放手即傳送。基於純 Swift、Network.framework 與 AWDL 重構，零音效干擾、零第三方依賴。">
   <meta property="og:image" content="assets/app-icon.png">
   <meta property="og:url" content="https://manfredsun.github.io/airdrop-wheel/">
   <meta name="twitter:card" content="summary_large_image">
@@ -19,48 +19,48 @@
 </head>
 <body>
 
-  <!-- Navigation -->
+  <!-- 導航列 Navigation -->
   <header class="navbar">
     <div class="nav-container">
       <a href="#" class="brand">
-        <img src="assets/app-icon.png" alt="AirDrop Wheel 2 Logo" class="brand-icon">
-        <span class="brand-text">AirDrop Wheel 2</span>
+        <img src="assets/app-icon.png" alt="AirDrop Wheel 圖示" class="brand-icon">
+        <span class="brand-text">AirDrop Wheel</span>
       </a>
 
       <nav class="nav-links">
-        <a href="#features">Features</a>
-        <a href="#demo">Live Demo</a>
-        <a href="#architecture">Architecture</a>
-        <a href="#install">Install</a>
+        <a href="#features">特色亮點</a>
+        <a href="#demo">互動體驗</a>
+        <a href="#architecture">技術架構</a>
+        <a href="#install">安裝指引</a>
         <a href="https://github.com/Manfredsun/airdrop-wheel" target="_blank" rel="noopener" class="github-link">
           <svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
           </svg>
           <span>GitHub</span>
         </a>
-        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Dark/Light Mode">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="切換深色 / 淺色模式">
           <span class="theme-icon">🌓</span>
         </button>
       </nav>
     </div>
   </header>
 
-  <!-- Hero Section -->
+  <!-- 首頁主視覺 Hero Section -->
   <section class="hero">
     <div class="hero-content">
       <div class="badge-pill">
         <span class="pulse-dot"></span>
-        <span>macOS 14.0+ Sonoma & Sequoia • Universal ARM64 & Intel</span>
+        <span>macOS 14.0+ Sonoma & Sequoia • 通用二進位 ARM64 & Intel</span>
       </div>
 
       <h1 class="hero-title">
-        Radial File Dropping<br>
-        <span class="gradient-text">Meets Native AirDrop.</span>
+        以徑向輪盤，<br>
+        <span class="gradient-text">重塑原生 AirDrop 體驗。</span>
       </h1>
 
       <p class="hero-subtitle">
-        A high-performance, zero-dependency, pure Swift macOS companion.
-        Hold <kbd>⌃ Control</kbd> while dragging files, flick into a radial sector, and release to send.
+        專為 macOS 打造的高效能、零依賴、純 Swift 點對點檔案拋送工具。<br>
+        在 Finder 或桌面拖曳檔案時按住 <kbd>⌃ Control</kbd> 鍵，甩入扇區，放手即刻發送。
       </p>
 
       <div class="hero-actions">
@@ -68,72 +68,72 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.92-2.85-.9.04-2 .6-2.65 1.35-.58.66-1.08 1.73-.95 2.76 1.01.08 2.06-.51 2.68-1.26z"/>
           </svg>
-          Download for macOS
+          下載 macOS 版 (.app)
         </a>
         <a href="https://github.com/Manfredsun/airdrop-wheel" target="_blank" rel="noopener" class="btn btn-secondary">
-          View on GitHub
+          在 GitHub 上查看
         </a>
       </div>
 
-      <!-- Quick Command Snippet -->
+      <!-- 終端機快速指令框 Quick Command Snippet -->
       <div class="code-snippet-box">
         <span class="code-prompt">$</span>
         <code id="install-cmd">git clone https://github.com/Manfredsun/airdrop-wheel.git && bash airdrop-wheel/scripts/build_release.sh</code>
-        <button id="copy-btn" class="copy-btn" title="Copy Command">
-          <span id="copy-label">Copy</span>
+        <button id="copy-btn" class="copy-btn" title="複製指令">
+          <span id="copy-label">複製</span>
         </button>
       </div>
     </div>
   </section>
 
-  <!-- Interactive Demo Section -->
+  <!-- 線上互動展示區 Interactive Demo Section -->
   <section id="demo" class="demo-section">
     <div class="section-header">
-      <span class="section-tag">Interactive Playground</span>
-      <h2>Try the Radial Wheel in Your Browser</h2>
-      <p>Drag the file below onto the wheel, hover over any recipient sector, and release to experience the flick-to-send interaction!</p>
+      <span class="section-tag">線上即時互動</span>
+      <h2>在瀏覽器中親身體驗徑向輪盤</h2>
+      <p>拖曳下方的模擬檔案卡片至輪盤，游標滑過任一目標裝置扇區，感受直覺的極坐標鎖定與甩送操作！</p>
     </div>
 
     <div class="demo-playground">
-      <!-- Draggable File Card -->
+      <!-- 可拖曳檔案卡片 Draggable File Card -->
       <div class="file-dock">
         <div id="draggable-file" class="draggable-file-card" draggable="true">
           <div class="file-icon">📄</div>
           <div class="file-info">
-            <span class="file-name">Project_Pitch.pdf</span>
-            <span class="file-meta">18.4 MB • Drag me to wheel</span>
+            <span class="file-name">專案提案簡報.pdf</span>
+            <span class="file-meta">18.4 MB • 拖曳我到輪盤扇區</span>
           </div>
         </div>
       </div>
 
-      <!-- Simulated Wheel Stage -->
+      <!-- 輪盤模擬舞台 Simulated Wheel Stage -->
       <div class="wheel-stage" id="wheel-stage">
         <div class="wheel-disc" id="wheel-disc">
-          <!-- 8 Radial Sectors rendered via SVG -->
+          <!-- 8 個徑向扇區 (SVG 向量渲染) -->
           <svg class="wheel-svg" viewBox="-270 -270 540 540" id="wheel-svg">
             <g id="sectors-group"></g>
           </svg>
 
-          <!-- Central Readout Hub -->
+          <!-- 中央動態讀出 Hub -->
           <div class="wheel-hub" id="wheel-hub">
             <div class="hub-default" id="hub-default">
               <span class="hub-glyph">🎯</span>
               <span class="hub-title">AirDrop Wheel</span>
-              <span class="hub-hint">Drag file here</span>
+              <span class="hub-hint">拖曳檔案至此</span>
             </div>
             <div class="hub-active" id="hub-active" style="display: none;">
               <span class="hub-target-glyph" id="hub-target-glyph">📱</span>
-              <span class="hub-target-name" id="hub-target-name">Recipient</span>
-              <span class="hub-target-action">Release to Send</span>
+              <span class="hub-target-name" id="hub-target-name">接收端</span>
+              <span class="hub-target-action">放手即發送</span>
             </div>
           </div>
         </div>
 
-        <!-- Silent Transfer HUD Simulator -->
+        <!-- 靜音傳送進度 HUD 模擬器 -->
         <div class="demo-hud" id="demo-hud" style="display: none;">
           <div class="hud-header">
             <span class="hud-status-dot"></span>
-            <span class="hud-title" id="hud-status-text">Sending to iPhone 15 Pro...</span>
+            <span class="hud-title" id="hud-status-text">正在發送至 iPhone 16 Pro...</span>
           </div>
           <div class="hud-progress-track">
             <div class="hud-progress-bar" id="hud-progress-bar"></div>
@@ -147,127 +147,128 @@
     </div>
   </section>
 
-  <!-- 4 Core Pillars / Features Grid -->
+  <!-- 4 大核心特色 Features Grid -->
   <section id="features" class="features-section">
     <div class="section-header">
-      <span class="section-tag">Core Principles</span>
-      <h2>Engineered for Flow, Speed & Silence</h2>
-      <p>Every detail is designed to remove friction from peer-to-peer file transfer on macOS.</p>
+      <span class="section-tag">核心哲學</span>
+      <h2>專為流暢專注、極速與靜音而生</h2>
+      <p>每一個互動與技術細節，皆為消除 macOS 點對點檔案傳輸的阻力而量身定制。</p>
     </div>
 
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">🎯</div>
-        <h3>FormatWheel Radial UX</h3>
-        <p>No window hunting. Hold ⌃ Control during file drag to summon the 540px radial wheel directly at your cursor. Flick into any 45° sector to dispatch instantly.</p>
+        <h3>FormatWheel 徑向操作 UX</h3>
+        <p>無需在雜亂視窗中尋找接收端。拖曳檔案時按住 <kbd>⌃ Control</kbd>，即在游標處彈出 540px 輪盤，甩入 45° 扇區放手即可完成傳送。</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon">⚡</div>
-        <h3>Pure Swift Engine</h3>
-        <p>Rewritten from scratch with Apple's native <code>Network.framework</code> and AWDL. Zero C/Python FFI dependencies, instantaneous cold boot, and rock-solid stability.</p>
+        <h3>純 Swift 原生傳輸引擎</h3>
+        <p>以 Apple 原生 <code>Network.framework</code> 與 AWDL 重構。零 C/Python FFI 包袱，秒速冷啟動，維持常數 $O(1)$ 記憶體安全邊界。</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon">🤫</div>
-        <h3>Total Silence Policy</h3>
-        <p>Strictly zero audio assets and zero sound APIs linked. No system beeps, no chimes. A quiet, unobtrusive utility built for focused creators and developers.</p>
+        <h3>完全靜音原則 (Total Silence)</h3>
+        <p>全專案嚴格零音效檔案、零系統音訊 API 呼叫。無突兀提示音與警示音，為專業創作者與工程師打造不被干擾的沉浸式工作流。</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon">🛡️</div>
-        <h3>Transparent Security</h3>
-        <p>TLS Leaf Certificate Pinning locks peer connections without relying on Apple cloud credentials. Bounded constant $O(1)$ memory streaming through POSIX ODC CPIO.</p>
+        <h3>透明誠實的安全邊界</h3>
+        <p>透過 TLS 葉憑證釘選（Leaf Pinning）確保連線安全，絕不依賴或偽造 Apple ID 憑證鏈，嚴禁假進度條，不破壞系統 SIP 或 Keychain。</p>
       </div>
     </div>
   </section>
 
-  <!-- Architecture & Protocol Section -->
+  <!-- 技術架構與協定時序 Architecture Section -->
   <section id="architecture" class="architecture-section">
     <div class="section-header">
-      <span class="section-tag">How It Works</span>
-      <h2>The AirDrop Protocol Pipeline</h2>
-      <p>How AirDrop Wheel 2 communicates with nearby Apple devices peer-to-peer.</p>
+      <span class="section-tag">運作原理</span>
+      <h2>AirDrop 傳輸管線時序</h2>
+      <p>AirDrop Wheel 如何在無需第三方雲端伺服器的情況下完成點對點連線與傳輸。</p>
     </div>
 
     <div class="protocol-timeline">
       <div class="step-card">
         <div class="step-number">01</div>
-        <h4>AWDL Interface Binding</h4>
-        <p>Binds directly to <code>awdl0</code> (Apple Wireless Direct Link) with peer-to-peer IPv6 multicast discovery.</p>
+        <h4>AWDL 介面直連綁定</h4>
+        <p>直接綁定 Apple Wireless Direct Link (<code>awdl0</code>) 介面，開啟點對點 IPv6 鏈路本地多播探索。</p>
       </div>
       <div class="step-card">
         <div class="step-number">02</div>
-        <h4>DNS-SD Bonjour Browsing</h4>
-        <p>Scans <code>_airdrop._tcp</code> services and resolves target device models (iPhone, MacBook, iPad) while filtering the local host.</p>
+        <h4>DNS-SD Bonjour 掃描</h4>
+        <p>掃描 <code>_airdrop._tcp</code> 服務，即時解析目標裝置型號（iPhone、MacBook、iPad）並自動過濾排除本機。</p>
       </div>
       <div class="step-card">
         <div class="step-number">03</div>
-        <h4>TLS Handshake & Leaf Pinning</h4>
-        <p>Initializes a secure TLS session via <code>POST /Discover</code> and pins the recipient's leaf public key to prevent MITM attacks.</p>
+        <h4>TLS 握手與葉憑證釘選</h4>
+        <p>經由 <code>POST /Discover</code> 握手並提取鎖定對端 Leaf 公鑰，防止後續 <code>/Ask</code> 與 <code>/Upload</code> 遭受中間人掉包。</p>
       </div>
       <div class="step-card">
         <div class="step-number">04</div>
-        <h4>CPIO Chunked Streaming</h4>
-        <p>Streams standard POSIX ODC CPIO archives in 64 KiB chunks over <code>POST /Upload</code>, maintaining $< 15\text{MB}$ memory footprint.</p>
+        <h4>POSIX ODC CPIO 串流分塊</h4>
+        <p>以 64 KiB 分塊串流發送標準 CPIO 歸檔（<code>POST /Upload</code>），全過程維持常數 $&lt; 15\text{MB}$ 記憶體極限。</p>
       </div>
     </div>
   </section>
 
-  <!-- Installation Section -->
+  <!-- 安裝指引 Install Section -->
   <section id="install" class="install-section">
     <div class="section-header">
-      <span class="section-tag">Get Started</span>
-      <h2>Install AirDrop Wheel 2</h2>
-      <p>Compatible with all Macs running macOS 14.0 Sonoma or later.</p>
+      <span class="section-tag">快速上手</span>
+      <h2>安裝與執行 AirDrop Wheel</h2>
+      <p>適用於所有搭載 macOS 14.0 Sonoma 或更高版本的 Mac。</p>
     </div>
 
     <div class="install-card">
       <div class="install-tab-header">
-        <button class="tab-btn active" data-tab="binary">Download .app</button>
-        <button class="tab-btn" data-tab="source">Build from Source</button>
+        <button class="tab-btn active" data-tab="binary">下載現成編譯版 (.app)</button>
+        <button class="tab-btn" data-tab="source">從原始碼本地編譯</button>
       </div>
 
       <div class="tab-pane active" id="pane-binary">
-        <p class="tab-desc">Download pre-compiled Universal binary for Apple Silicon and Intel:</p>
+        <p class="tab-desc">下載適用於 Apple Silicon (M 系列) 及 Intel Mac 的通用二進位版本：</p>
         <a href="https://github.com/Manfredsun/airdrop-wheel/releases" target="_blank" rel="noopener" class="btn btn-primary">
-          Download Latest Release (.app)
+          下載最新發行版 (.app)
         </a>
         <div class="install-steps">
-          <p>1. Drag <strong>AirDrop Wheel 2.app</strong> into <code>/Applications</code></p>
-          <p>2. Grant <strong>Accessibility</strong> and <strong>Local Network</strong> permissions when prompted</p>
-          <p>3. Set recipient device to <strong>"Everyone for 10 minutes"</strong></p>
+          <p>1. 將 <strong>AirDrop Wheel.app</strong> 拖移至 <code>/Applications</code>（應用程式）目錄</p>
+          <p>2. 啟動並依系統提示授予 <strong>輔助使用</strong> 與 <strong>區域網絡</strong> 權限</p>
+          <p>3. 將接收端裝置之 AirDrop 設定為 <strong>「所有人（10 分鐘）」</strong></p>
+          <p>4. 拖曳檔案並按住 <kbd>⌃ Control</kbd> 即可呼喚輪盤！</p>
         </div>
       </div>
 
       <div class="tab-pane" id="pane-source" style="display: none;">
-        <p class="tab-desc">Clone and compile using Xcode Command Line Tools:</p>
+        <p class="tab-desc">使用 macOS 內建 Xcode Command Line Tools 複製並一鍵編譯：</p>
         <pre class="code-block"><code>git clone https://github.com/Manfredsun/airdrop-wheel.git
 cd airdrop-wheel
 bash scripts/build_release.sh</code></pre>
-        <p class="tab-hint">Output binary will be code-signed and available at <code>dist/AirDrop Wheel 2.app</code>.</p>
+        <p class="tab-hint">編譯完成並已通過穩定代碼簽署的產物將產出於 <code>dist/AirDrop Wheel.app</code>。</p>
       </div>
     </div>
   </section>
 
-  <!-- Footer -->
+  <!-- 頁尾 Footer -->
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-brand">
-        <img src="assets/app-icon.png" alt="AirDrop Wheel 2 Logo" class="footer-icon">
-        <span>AirDrop Wheel 2</span>
+        <img src="assets/app-icon.png" alt="AirDrop Wheel 圖示" class="footer-icon">
+        <span>AirDrop Wheel</span>
       </div>
 
       <div class="footer-links">
-        <a href="https://github.com/Manfredsun/airdrop-wheel" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://github.com/Manfredsun/airdrop-wheel/blob/main/docs/ARCHITECTURE.md">Architecture</a>
-        <a href="https://github.com/Manfredsun/airdrop-wheel/blob/main/docs/TROUBLESHOOTING.md">Troubleshooting</a>
-        <a href="https://github.com/Manfredsun/airdrop-wheel/blob/main/LICENSE">MIT License</a>
+        <a href="https://github.com/Manfredsun/airdrop-wheel" target="_blank" rel="noopener">GitHub 倉庫</a>
+        <a href="https://github.com/Manfredsun/airdrop-wheel/blob/main/docs/ARCHITECTURE.md">架構剖析</a>
+        <a href="https://github.com/Manfredsun/airdrop-wheel/blob/main/docs/TROUBLESHOOTING.md">疑難排解</a>
+        <a href="https://github.com/Manfredsun/airdrop-wheel/blob/main/LICENSE">MIT 授權</a>
       </div>
 
       <div class="footer-attribution">
-        <p>Created by <strong>Manfred Shen (申承羲)</strong>. Released under the MIT License.</p>
-        <p class="sub-attribution">Radial wheel interaction philosophy inspired by FormatWheel (Copyright &copy; 2026 Elise616).</p>
+        <p>由 <strong>Manfred Shen (申承羲)</strong> 打造與維護。基於 MIT License 開源發布。</p>
+        <p class="sub-attribution">FormatWheel 徑向輪盤互動操作哲學致敬 FormatWheel (Copyright &copy; 2026 Elise616)。</p>
       </div>
     </div>
   </footer>

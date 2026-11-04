@@ -3,7 +3,7 @@ import Network
 import Security
 import os
 
-private let logger = Logger(subsystem: "app.airdropwheel2.macos", category: "TransferCoordinator")
+private let logger = Logger(subsystem: "app.airdropwheel.macos", category: "TransferCoordinator")
 
 public enum TransferState: Equatable, Sendable {
     case idle
@@ -21,7 +21,7 @@ public enum TransferState: Equatable, Sendable {
 public final class TransferCoordinator: ObservableObject {
     @Published public private(set) var state: TransferState = .idle
 
-    private let logger = Logger(subsystem: "app.airdropwheel2.macos", category: "TransferCoordinator")
+    private let logger = Logger(subsystem: "app.airdropwheel.macos", category: "TransferCoordinator")
     private var activeConnection: NWConnection?
     private var transferID: UUID?
     private var currentDecoder = DiscoverHTTPDecoder()

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="Design/Logo/magnific__design-a-minimalist-japaneseinspired-logo-for-a-ma__78247.png" alt="AirDrop Wheel 2 Logo" width="160" height="160" style="border-radius: 36px; box-shadow: 0 12px 32px rgba(0,0,0,0.15);" />
+  <img src="Design/Logo/magnific__design-a-minimalist-japaneseinspired-logo-for-a-ma__78247.png" alt="AirDrop Wheel Logo" width="160" height="160" style="border-radius: 36px; box-shadow: 0 12px 32px rgba(0,0,0,0.15);" />
 </p>
 
-<h1 align="center">AirDrop Wheel 2</h1>
+<h1 align="center">AirDrop Wheel</h1>
 
 <p align="center">
   <strong>Radial File Dropping Meets Native AirDrop for macOS.</strong><br>
@@ -61,11 +61,11 @@ Experience the interactive radial wheel simulation directly in your browser with
 
 ## 🔒 Permissions & Setup
 
-To function smoothly as a system-wide file-drag companion, AirDrop Wheel 2 requires:
+To function smoothly as a system-wide file-drag companion, AirDrop Wheel requires:
 
 1. **Accessibility Permission (`AXIsProcessTrusted`)**:
    Required to monitor mouse coordinates and global drag events when holding <kbd>⌃ Control</kbd>.
-   - *System Settings → Privacy & Security → Accessibility → Enable AirDrop Wheel 2*.
+   - *System Settings → Privacy & Security → Accessibility → Enable AirDrop Wheel*.
 2. **Local Network Permission**:
    Required to browse nearby AirDrop peers over AWDL Bonjour.
 3. **Full Disk Access (Optional)**:
@@ -77,14 +77,14 @@ To function smoothly as a system-wide file-drag companion, AirDrop Wheel 2 requi
 
 ### Option 1: Download Pre-built App
 
-1. Download the latest `AirDrop Wheel 2.app` from [GitHub Releases](https://github.com/Manfredsun/airdrop-wheel/releases).
-2. Move `AirDrop Wheel 2.app` to your `/Applications` folder.
+1. Download the latest `AirDrop Wheel.app` from [GitHub Releases](https://github.com/Manfredsun/airdrop-wheel/releases).
+2. Move `AirDrop Wheel.app` to your `/Applications` folder.
 3. Launch the app and grant Accessibility and Local Network permissions when prompted.
 4. Drag any file and hold <kbd>⌃ Control</kbd> to bring up the wheel!
 
 ### Option 2: Build from Source
 
-AirDrop Wheel 2 uses native Xcode configuration with zero external package manager dependencies:
+AirDrop Wheel uses native Xcode configuration with zero external package manager dependencies:
 
 ```bash
 # Clone the repository
@@ -96,13 +96,13 @@ bash scripts/build_release.sh
 ```
 
 The compiled application will be generated and code-signed at:
-`dist/AirDrop Wheel 2.app`
+`dist/AirDrop Wheel.app`
 
 ---
 
 ## 📐 Architecture
 
-AirDrop Wheel 2 adopts a strict layered architecture:
+AirDrop Wheel adopts a strict layered architecture:
 
 ```text
   [ User Drag / Finder Gesture ]
@@ -158,6 +158,6 @@ Contributions, bug reports, and pull requests are warmly welcomed! Please read o
 
 ## 📄 License & Attribution
 
-- **AirDrop Wheel 2** is released under the [MIT License](LICENSE). Copyright (c) 2026 Manfred Shen (申承羲).
+- **AirDrop Wheel** is released under the [MIT License](LICENSE). Copyright (c) 2026 Manfred Shen (申承羲).
 - **FormatWheel**: Radial wheel interaction philosophy references FormatWheel (Copyright (c) 2026 Elise616, MIT License).
-- **Brand Assets**: The name "AirDrop Wheel 2" and original logo assets are proprietary and reserved.
+- **Brand Assets**: The name "AirDrop Wheel" and original logo assets are proprietary and reserved.

@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest an idea or architectural improvement for AirDrop Wheel 2
+about: Suggest an idea or architectural improvement for AirDrop Wheel
 title: '[FEAT] '
 labels: ['enhancement']
 assignees: ''

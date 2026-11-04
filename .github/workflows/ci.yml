@@ -19,10 +19,10 @@ jobs:
           xcodebuild -version
           swift --version
 
-      - name: Build AirDrop Wheel 2 (Debug)
+      - name: Build AirDrop Wheel (Debug)
         run: |
-          xcodebuild -project "AirDrop Wheel 2.xcodeproj" \
-                     -scheme "AirDrop Wheel 2" \
+          xcodebuild -project "AirDrop Wheel.xcodeproj" \
+                     -scheme "AirDrop Wheel" \
                      -configuration Debug \
                      -derivedDataPath build/DerivedData \
                      CODE_SIGN_IDENTITY="" \
