@@ -64,7 +64,7 @@ common = dict(
     MACOSX_DEPLOYMENT_TARGET="14.0",
     SDKROOT="macosx",
     CLANG_ENABLE_MODULES="YES",
-    SWIFT_STRICT_CONCURRENCY="targeted",
+    SWIFT_STRICT_CONCURRENCY="minimal",
 )
 
 app_settings = dict(
