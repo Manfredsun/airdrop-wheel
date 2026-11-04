@@ -11,7 +11,7 @@ public final class FinderDragWatcher {
     private var timer: Timer?
     private var isDragging = false
     private var isFired = false
-    private var lastShift = false
+    private var lastControl = false
     private var baselineChangeCount = 0
 
     public init() {}
@@ -45,7 +45,7 @@ public final class FinderDragWatcher {
         baselineChangeCount = pasteboard.changeCount
         isDragging = false
         isFired = false
-        lastShift = NSEvent.modifierFlags.contains(.shift)
+        lastControl = NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(.control)
         startTimer()
     }
 
@@ -78,12 +78,12 @@ public final class FinderDragWatcher {
             return
         }
 
-        let shift = NSEvent.modifierFlags.contains(.shift)
-        let shiftNewlyPressed = shift && !lastShift
-        lastShift = shift
+        let controlActive = NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(.control)
+        let controlNewlyPressed = controlActive && !lastControl
+        lastControl = controlActive
 
-        // Trigger condition: mouse is dragging AND (Shift was newly pressed OR Shift is held) AND wheel is not open yet
-        guard (shiftNewlyPressed || (shift && isDragging)) && !isFired && !isWheelOpen() else {
+        // Trigger condition: mouse is dragging AND (Control was newly pressed OR Control is held) AND wheel is not open yet
+        guard (controlNewlyPressed || (controlActive && isDragging)) && !isFired && !isWheelOpen() else {
             return
         }
 

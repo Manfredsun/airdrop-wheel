@@ -114,7 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
 
         let tipItem = NSMenuItem(
-            title: "💡 提示：按住檔案時按一下 ⇧ Shift 喚出輪盤",
+            title: "💡 提示：按住檔案時按一下 ⌃ Control 喚出輪盤",
             action: nil,
             keyEquivalent: ""
         )
