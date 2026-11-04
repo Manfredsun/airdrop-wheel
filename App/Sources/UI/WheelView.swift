@@ -60,7 +60,7 @@ public struct WheelDividerShape: Shape {
         let center = CGPoint(x: rect.midX, y: rect.midY)
         let step = 360.0 / Double(count)
         let angleDeg = Double(index) * step - 90.0 + (step / 2.0)
-        let angleRad = angleDeg * .pi / 180.0
+        let angleRad = CGFloat(angleDeg * .pi / 180.0)
 
         let p0 = CGPoint(
             x: center.x + innerRadius * cos(angleRad),
