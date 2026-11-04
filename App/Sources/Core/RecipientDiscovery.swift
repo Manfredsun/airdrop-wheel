@@ -379,8 +379,9 @@ public final class LiveRecipientDiscovery: ObservableObject {
         self.browser = b
 
         b.browseResultsChangedHandler = { [weak self] results, _ in
+            guard let self else { return }
             Task { @MainActor in
-                guard let self, self.isStarted else { return }
+                guard self.isStarted else { return }
                 var currentEndpoints = Set<NWEndpoint>()
 
                 for result in results {
@@ -416,8 +417,8 @@ public final class LiveRecipientDiscovery: ObservableObject {
         }
 
         b.stateUpdateHandler = { [weak self] state in
+            guard let self else { return }
             Task { @MainActor in
-                guard let self else { return }
                 switch state {
                 case .ready:
                     self.isSearching = true
@@ -456,9 +457,9 @@ public final class LiveRecipientDiscovery: ObservableObject {
         activeConnections[endpoint] = connection
 
         connection.stateUpdateHandler = { [weak self, weak connection] state in
-            guard let connection else { return }
+            guard let self, let connection else { return }
             Task { @MainActor in
-                guard let self, self.isStarted, self.activeConnections[endpoint] === connection else { return }
+                guard self.isStarted, self.activeConnections[endpoint] === connection else { return }
                 switch state {
                 case .ready:
                     if LocalDeviceDetector.isSelfConnection(connection.currentPath) {
@@ -489,9 +490,10 @@ public final class LiveRecipientDiscovery: ObservableObject {
         do {
             let requestData = try DiscoverReply.request()
             connection.send(content: requestData, completion: .contentProcessed { [weak self] error in
+                guard let self else { return }
                 Task { @MainActor in
-                    guard let self, self.isStarted, error == nil else {
-                        self?.activeConnections.removeValue(forKey: endpoint)?.cancel()
+                    guard self.isStarted, error == nil else {
+                        self.activeConnections.removeValue(forKey: endpoint)?.cancel()
                         return
                     }
                     self.readDiscoverResponse(connection, endpoint: endpoint, decoder: DiscoverHTTPDecoder(), certBox: certBox)
@@ -504,9 +506,9 @@ public final class LiveRecipientDiscovery: ObservableObject {
 
     private func readDiscoverResponse(_ connection: NWConnection, endpoint: NWEndpoint, decoder: DiscoverHTTPDecoder, certBox: DiscoveryCertBox) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self, weak connection] data, _, eof, error in
-            guard let connection else { return }
+            guard let self, let connection else { return }
             Task { @MainActor in
-                guard let self, self.isStarted, self.activeConnections[endpoint] === connection else { return }
+                guard self.isStarted, self.activeConnections[endpoint] === connection else { return }
                 var curDecoder = decoder
 
                 do {
