@@ -20,13 +20,15 @@ public final class FinderDragWatcher {
         guard monitors.isEmpty else { return }
 
         if let m1 = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown, handler: { [weak self] _ in
-            Task { @MainActor in self?.handleMouseDown() }
+            guard let self else { return }
+            Task { @MainActor in self.handleMouseDown() }
         }) {
             monitors.append(m1)
         }
 
         if let m2 = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDragged, handler: { [weak self] _ in
-            Task { @MainActor in self?.handleMouseDragged() }
+            guard let self else { return }
+            Task { @MainActor in self.handleMouseDragged() }
         }) {
             monitors.append(m2)
         }
@@ -59,7 +61,8 @@ public final class FinderDragWatcher {
     private func startTimer() {
         guard timer == nil else { return }
         let t = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.poll() }
+            guard let self else { return }
+            Task { @MainActor in self.poll() }
         }
         self.timer = t
         RunLoop.main.add(t, forMode: .common)

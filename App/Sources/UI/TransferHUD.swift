@@ -141,7 +141,10 @@ public final class TransferHUD: ObservableObject {
             context.duration = 0.15
             p.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
-            self?.panel?.orderOut(nil)
+            guard let self else { return }
+            DispatchQueue.main.async {
+                self.panel?.orderOut(nil)
+            }
         })
     }
 

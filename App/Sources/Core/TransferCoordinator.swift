@@ -169,18 +169,19 @@ public final class TransferCoordinator: ObservableObject {
         let totalBytes = items.reduce(UInt64(0)) { $0 + $1.byteSize }
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
             do {
                 let archive = try AirDropCPIOArchive.buildArchive(for: items)
                 let chunks = AirDropCPIOArchive.makeStreamChunks(from: archive)
 
                 DispatchQueue.main.async {
-                    guard let self, !self.isCancelled, self.activeConnection === connection else { return }
+                    guard !self.isCancelled, self.activeConnection === connection else { return }
                     self.sendChunkedUpload(connection, chunks: chunks, recipient: recipient, transferID: transferID, totalBytes: totalBytes)
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self?.logger.error("Failed to build CPIO archive: \(error.localizedDescription)")
-                    self?.fail(recipient: recipient, reason: "封裝檔案時發生錯誤")
+                    self.logger.error("Failed to build CPIO archive: \(error.localizedDescription)")
+                    self.fail(recipient: recipient, reason: "封裝檔案時發生錯誤")
                 }
             }
         }
