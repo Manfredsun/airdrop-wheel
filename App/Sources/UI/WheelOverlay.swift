@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-private final class WheelPanel: NSPanel {
+private final class OverlayPanel: NSPanel {
     var onEscape: (() -> Void)?
     var onTab: (() -> Void)?
     var onScroll: ((NSEvent) -> Void)?
@@ -33,7 +33,7 @@ private final class WheelPanel: NSPanel {
     }
 }
 
-private final class WheelPanelHostView: NSHostingView<WheelView> {
+private final class OverlayRootView: NSHostingView<AnyView> {
     weak var overlay: WheelOverlay?
 
     override func hitTest(_ point: NSPoint) -> NSView? {
@@ -45,25 +45,25 @@ private final class WheelPanelHostView: NSHostingView<WheelView> {
     }
 
     override func mouseMoved(with event: NSEvent) {
-        overlay?.updateHover(at: event.locationInWindow)
+        overlay?.handleMouseLocation(event.locationInWindow)
     }
 
     override func mouseDragged(with event: NSEvent) {
-        overlay?.updateHover(at: event.locationInWindow)
+        overlay?.handleMouseLocation(event.locationInWindow)
     }
 
     override func mouseUp(with event: NSEvent) {
-        overlay?.mouseReleased(at: event.locationInWindow)
+        overlay?.handleMouseRelease(event.locationInWindow)
     }
 
     // MARK: - Drag Destination Support
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        overlay?.updateHover(at: sender.draggingLocation)
+        overlay?.handleMouseLocation(sender.draggingLocation)
         return .copy
     }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        overlay?.updateHover(at: sender.draggingLocation)
+        overlay?.handleMouseLocation(sender.draggingLocation)
         return .copy
     }
 
@@ -76,8 +76,33 @@ private final class WheelPanelHostView: NSHostingView<WheelView> {
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        overlay?.mouseReleased(at: sender.draggingLocation)
+        overlay?.handleMouseRelease(sender.draggingLocation)
         return true
+    }
+}
+
+private struct OverlayContainerView: View {
+    @ObservedObject var overlay: WheelOverlay
+    @Environment(\.colorScheme) var colorScheme
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                // Full-screen soft dimming layer
+                Color.black
+                    .opacity(colorScheme == .dark ? 0.36 : 0.26)
+                    .edgesIgnoringSafeArea(.all)
+                    .onTapGesture {
+                        overlay.close()
+                    }
+
+                // Centered Wheel positioned at clamped mouse center
+                WheelView(model: overlay.model)
+                    .scaleEffect(overlay.popScale)
+                    .opacity(overlay.popOpacity)
+                    .position(overlay.wheelPositionInView(size: proxy.size))
+            }
+        }
     }
 }
 
@@ -85,11 +110,14 @@ private final class WheelPanelHostView: NSHostingView<WheelView> {
 public final class WheelOverlay: ObservableObject {
     public let model = WheelModel()
 
-    private var panel: WheelPanel?
-    private var hostView: WheelPanelHostView?
-    private let panelSize: CGFloat = 640
+    @Published var popScale: CGFloat = 0.92
+    @Published var popOpacity: Double = 0.0
+
+    private var panel: OverlayPanel?
+    private var hostView: OverlayRootView?
     public private(set) var isOpen = false
 
+    private var wheelCenterScreenPoint: NSPoint = .zero
     public var onSendToRecipient: ((TransferPayload, Recipient) -> Void)?
 
     public init() {
@@ -104,11 +132,15 @@ public final class WheelOverlay: ObservableObject {
         }
     }
 
-    private func ensurePanel() {
-        if panel != nil { return }
+    private func ensurePanel(for screen: NSScreen) {
+        let frame = screen.frame
+        if let p = panel {
+            p.setFrame(frame, display: true)
+            return
+        }
 
-        let p = WheelPanel(
-            contentRect: NSRect(x: 0, y: 0, width: panelSize, height: panelSize),
+        let p = OverlayPanel(
+            contentRect: frame,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -120,7 +152,8 @@ public final class WheelOverlay: ObservableObject {
         p.isReleasedWhenClosed = false
         p.hasShadow = false
 
-        let host = WheelPanelHostView(rootView: WheelView(model: model))
+        let container = OverlayContainerView(overlay: self)
+        let host = OverlayRootView(rootView: AnyView(container))
         host.overlay = self
         host.registerForDraggedTypes([.fileURL, .URL, .string])
         p.contentView = host
@@ -134,7 +167,9 @@ public final class WheelOverlay: ObservableObject {
     }
 
     public func show(at screenPoint: NSPoint, payload: TransferPayload, recipients: [Recipient]) {
-        ensurePanel()
+        let screen = NSScreen.screens.first(where: { NSPointInRect(screenPoint, $0.frame) }) ?? NSScreen.main ?? NSScreen.screens[0]
+        ensurePanel(for: screen)
+
         guard let p = panel else { return }
 
         model.payload = payload
@@ -142,24 +177,28 @@ public final class WheelOverlay: ObservableObject {
         model.page = 0
         model.hoveredIndex = nil
 
-        // Position panel centered at screenPoint
-        var origin = CGPoint(x: screenPoint.x - panelSize / 2, y: screenPoint.y - panelSize / 2)
+        // Clamp wheel center so that 540px wheel stays fully visible
+        let visible = screen.visibleFrame
+        let radius = WheelTheme.outerRadius + 50.0 // buffer for badges
+        var clampedX = max(visible.minX + radius, min(screenPoint.x, visible.maxX - radius))
+        var clampedY = max(visible.minY + radius, min(screenPoint.y, visible.maxY - radius))
 
-        // Clamp to screen bounds
-        if let screen = NSScreen.screens.first(where: { NSPointInRect(screenPoint, $0.frame) }) ?? NSScreen.main {
-            let frame = screen.visibleFrame
-            origin.x = max(frame.minX, min(origin.x, frame.maxX - panelSize))
-            origin.y = max(frame.minY, min(origin.y, frame.maxY - panelSize))
-        }
+        // On small screen where frame < radius * 2, use center
+        if visible.width < radius * 2 { clampedX = visible.midX }
+        if visible.height < radius * 2 { clampedY = visible.midY }
 
-        p.setFrameOrigin(origin)
-        p.alphaValue = 0
+        self.wheelCenterScreenPoint = NSPoint(x: clampedX, y: clampedY)
+
+        // Reset animation states
+        popScale = 0.92
+        popOpacity = 0.0
+
+        p.setFrame(screen.frame, display: true)
         p.orderFrontRegardless()
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.12
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            p.animator().alphaValue = 1
+        withAnimation(.spring(response: 0.18, dampingFraction: 0.74)) {
+            self.popScale = 1.0
+            self.popOpacity = 1.0
         }
 
         isOpen = true
@@ -175,37 +214,50 @@ public final class WheelOverlay: ObservableObject {
         isOpen = false
         model.hoveredIndex = nil
 
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.1
-            p.animator().alphaValue = 0
-        }, completionHandler: {
+        withAnimation(.easeOut(duration: 0.12)) {
+            self.popOpacity = 0.0
+            self.popScale = 0.95
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+            guard let self, !self.isOpen else { return }
             p.orderOut(nil)
-        })
+        }
     }
 
-    func updateHover(at windowLocation: NSPoint) {
-        let center = CGPoint(x: panelSize / 2, y: panelSize / 2)
-        let dx = windowLocation.x - center.x
-        let dy = windowLocation.y - center.y
+    func wheelPositionInView(size: CGSize) -> CGPoint {
+        guard let p = panel else { return CGPoint(x: size.width / 2, y: size.height / 2) }
+        let winOrigin = p.frame.origin
+        let localX = wheelCenterScreenPoint.x - winOrigin.x
+        // Convert AppKit bottom-up Y to SwiftUI top-down Y
+        let localY = size.height - (wheelCenterScreenPoint.y - winOrigin.y)
+        return CGPoint(x: localX, y: localY)
+    }
+
+    func handleMouseLocation(_ windowPoint: NSPoint) {
+        guard let p = panel else { return }
+        let screenY = p.frame.origin.y + windowPoint.y
+        let screenX = p.frame.origin.x + windowPoint.x
+
+        let dx = screenX - wheelCenterScreenPoint.x
+        let dy = screenY - wheelCenterScreenPoint.y
         let dist = hypot(dx, dy)
 
-        // Deadzone: center hub or too far outside wheel
-        let deadZone = WheelTheme.innerRadius * 0.9
-        let maxRadius = WheelTheme.outerRadius * 1.05
-
-        if dist < deadZone || dist > maxRadius {
+        // Inside center hub dead zone -> hover is nil
+        if dist < WheelTheme.centerDeadZone {
             model.setHoveredIndex(nil)
             return
         }
 
+        // Sector angle calculation (0 = Top / 12 o'clock, clockwise)
         var theta = atan2(dx, dy)
         if theta < 0 { theta += 2 * .pi }
         let index = Int((theta + .pi / 8.0) / (.pi / 4.0)) % WheelTheme.sectorCount
         model.setHoveredIndex(index)
     }
 
-    func mouseReleased(at windowLocation: NSPoint) {
-        updateHover(at: windowLocation)
+    func handleMouseRelease(_ windowPoint: NSPoint) {
+        handleMouseLocation(windowPoint)
         if let target = model.hoveredRecipient {
             model.onSelectRecipient?(target)
         } else {
