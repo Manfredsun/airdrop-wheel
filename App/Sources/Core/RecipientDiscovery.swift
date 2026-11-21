@@ -3,6 +3,15 @@ import Network
 import Security
 import AppKit
 import SystemConfiguration
+import os
+
+private let discoveryLogger = Logger(subsystem: "app.airdropwheel.macos", category: "RecipientDiscovery")
+
+public enum DiscoveryHint: Equatable, Sendable {
+    case none
+    case searching
+    case contactsOnlyLikely
+}
 
 public enum DeviceKind: String, Sendable, CaseIterable {
     case iPhone
@@ -180,17 +189,11 @@ public enum LocalDeviceDetector {
         return addresses
     }
 
-    public static func isSelfName(_ candidate: String, selfIdentities: Set<String> = []) -> Bool {
+    public static func isSelfName(_ candidate: String) -> Bool {
         let norm = normalizeName(candidate)
         guard !norm.isEmpty else { return false }
-        if selfIdentities.contains(norm) {
-            return true
-        }
         let localHostNorms = Set(getLocalHostNames().map(normalizeName))
-        if localHostNorms.contains(norm) {
-            return true
-        }
-        return false
+        return localHostNorms.contains(norm)
     }
 
     public static func isSelfConnection(_ path: NWPath?) -> Bool {
@@ -228,15 +231,26 @@ public enum LocalDeviceDetector {
 public final class LiveRecipientDiscovery: ObservableObject {
     @Published public private(set) var recipients: [Recipient] = []
     @Published public private(set) var isSearching: Bool = false
+    @Published public private(set) var discoveryHint: DiscoveryHint = .searching
 
     private var browser: NWBrowser?
     private var wakeBrowser: NSObject?
     private var wakeDelegate: AirDropWakeDelegate?
     private var nodeModelCache: [String: String] = [:]
-    private var selfIdentities: Set<String> = []
-    private var activeConnections: [NWEndpoint: NWConnection] = [:]
-    private var knownCertificates: [NWEndpoint: Data] = [:]
-    private var recipientMap: [NWEndpoint: Recipient] = [:]
+    private var knownEndpoints: [String: NWEndpoint] = [:]
+    private var activeConnections: [String: NWConnection] = [:]
+    private var knownCertificates: [String: Data] = [:]
+    private var recipientMap: [String: Recipient] = [:]
+    private var probeAttempts: [String: Int] = [:]
+    private var retryWorkItems: [String: DispatchWorkItem] = [:]
+    private var rejectedServiceKeys: Set<String> = []
+    private var selfServiceKeys: Set<String> = []
+    private var wakePeopleCount: Int = 0
+    private var lastWakePulseDate: Date?
+    private var isWheelActive: Bool = false
+    private var wheelReprobeTimer: Timer?
+    private var wakeObserver: NSObjectProtocol?
+    private var sleepWakeWorkItem: DispatchWorkItem?
     private var isStarted = false
 
     public init() {}
@@ -245,13 +259,55 @@ public final class LiveRecipientDiscovery: ObservableObject {
         guard !isStarted else { return }
         isStarted = true
         isSearching = true
+        updateDiscoveryHint()
+
+        if wakeObserver == nil {
+            wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.didWakeNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                guard let self else { return }
+                Task { @MainActor in
+                    self.handleSystemWake()
+                }
+            }
+        }
+
         startWakeBrowser()
         startBonjourBrowser()
+    }
+
+    private func handleSystemWake() {
+        guard isStarted else { return }
+        discoveryLogger.info("System didWakeNotification received; scheduling discovery refresh")
+        sleepWakeWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            Task { @MainActor in
+                guard self.isStarted else { return }
+                self.refreshDiscovery()
+            }
+        }
+        sleepWakeWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: item)
     }
 
     public func stopDiscovery() {
         isStarted = false
         isSearching = false
+        isWheelActive = false
+
+        if let observer = wakeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+            wakeObserver = nil
+        }
+        sleepWakeWorkItem?.cancel()
+        sleepWakeWorkItem = nil
+
+        wheelReprobeTimer?.invalidate()
+        wheelReprobeTimer = nil
+
         browser?.cancel()
         browser = nil
 
@@ -261,15 +317,27 @@ public final class LiveRecipientDiscovery: ObservableObject {
             wakeDelegate = nil
         }
 
+        for (_, item) in retryWorkItems {
+            item.cancel()
+        }
+        retryWorkItems.removeAll()
+
         for (_, conn) in activeConnections {
             conn.cancel()
         }
         activeConnections.removeAll()
+
+        knownEndpoints.removeAll()
         knownCertificates.removeAll()
         recipientMap.removeAll()
         recipients.removeAll()
-        selfIdentities.removeAll()
+        probeAttempts.removeAll()
+        rejectedServiceKeys.removeAll()
+        selfServiceKeys.removeAll()
         nodeModelCache.removeAll()
+        wakePeopleCount = 0
+        lastWakePulseDate = nil
+        discoveryHint = .searching
     }
 
     public func updatePayloadURLs(_ urls: [URL]) {
@@ -277,7 +345,76 @@ public final class LiveRecipientDiscovery: ObservableObject {
         wake.setValue(urls, forKey: "urlsBeingShared")
     }
 
-    private func startWakeBrowser(with urls: [URL] = []) {
+    public func pulseDiscovery(with urls: [URL] = []) {
+        if !isStarted {
+            startDiscovery()
+        }
+
+        let now = Date()
+        let elapsed = lastWakePulseDate.map { now.timeIntervalSince($0) } ?? .infinity
+        let shouldRestartWake = elapsed >= 5.0 || (recipients.isEmpty && elapsed >= 2.0)
+
+        if shouldRestartWake {
+            startWakeBrowser(with: urls, forceRestart: true)
+        } else if !urls.isEmpty {
+            updatePayloadURLs(urls)
+        }
+
+        for key in knownEndpoints.keys where !selfServiceKeys.contains(key) && recipientMap[key] == nil {
+            probeAttempts.removeValue(forKey: key)
+        }
+        probeUnresolvedEndpoints(includeRejected: true)
+    }
+
+    public func setWheelActive(_ active: Bool) {
+        isWheelActive = active
+        wheelReprobeTimer?.invalidate()
+        wheelReprobeTimer = nil
+
+        guard active else { return }
+        let timer = Timer(timeInterval: 3.0, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                guard self.isStarted, self.isWheelActive else { return }
+                self.probeUnresolvedEndpoints(includeRejected: true)
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        wheelReprobeTimer = timer
+    }
+
+    public func refreshDiscovery() {
+        discoveryLogger.info("Manual/wake discovery refresh triggered")
+        let wasWheelActive = isWheelActive
+        stopDiscovery()
+        startDiscovery()
+        if wasWheelActive {
+            setWheelActive(true)
+        }
+    }
+
+    private func serviceKey(for endpoint: NWEndpoint) -> String {
+        if case .service(let name, _, _, _) = endpoint {
+            return name
+        }
+        return String(describing: endpoint)
+    }
+
+    private func ensureProbeFileURL() -> URL {
+        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("airdrop_wheel_probe.tmp")
+        if !FileManager.default.fileExists(atPath: url.path) {
+            try? Data([0x00]).write(to: url, options: .atomic)
+        }
+        return url
+    }
+
+    private func startWakeBrowser(with urls: [URL] = [], forceRestart: Bool = false) {
+        if forceRestart, let existing = wakeBrowser {
+            _ = existing.perform(NSSelectorFromString("stop"))
+            wakeBrowser = nil
+            wakeDelegate = nil
+        }
+
         guard wakeBrowser == nil else {
             if !urls.isEmpty {
                 wakeBrowser?.setValue(urls, forKey: "urlsBeingShared")
@@ -287,39 +424,40 @@ public final class LiveRecipientDiscovery: ObservableObject {
         if NSClassFromString("SFAirDropBrowser") == nil {
             Bundle(path: "/System/Library/PrivateFrameworks/Sharing.framework")?.load()
         }
-        guard let cls = NSClassFromString("SFAirDropBrowser") as? NSObject.Type else { return }
+        guard let cls = NSClassFromString("SFAirDropBrowser") as? NSObject.Type else {
+            discoveryLogger.warning("SFAirDropBrowser class unavailable")
+            return
+        }
         let instance = cls.init()
         let del = AirDropWakeDelegate()
         del.onPeopleChanged = { [weak self] people in
+            guard let self else { return }
             Task { @MainActor in
-                self?.handleDiscoveredPeople(people)
+                guard self.isStarted else { return }
+                self.handleDiscoveredPeople(people)
             }
         }
         self.wakeDelegate = del
         instance.setValue(del, forKey: "delegate")
 
-        // Set urlsBeingShared so sharingd actively transmits BLE wake pulses for nearby iOS devices
-        let targetURLs = !urls.isEmpty ? urls : [URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("airdrop_probe.dat")]
+        // Set urlsBeingShared with an existing file URL so sharingd actively transmits BLE wake pulses for nearby iOS devices
+        let targetURLs = !urls.isEmpty ? urls : [ensureProbeFileURL()]
         instance.setValue(targetURLs, forKey: "urlsBeingShared")
 
         wakeBrowser = instance
         _ = instance.perform(NSSelectorFromString("start"))
+        lastWakePulseDate = Date()
+        discoveryLogger.info("Started SFAirDropBrowser BLE wake pulse")
     }
 
     private func handleDiscoveredPeople(_ people: [NSObject]) {
+        wakePeopleCount = people.count
+        discoveryLogger.info("SFAirDropBrowser reported \(people.count) nearby node(s)")
         var updated = false
-        for person in people {
-            let isMe = (person.value(forKey: "me") as? Bool) ?? false
-            if isMe {
-                if let dName = (person.value(forKey: "displayName") as? String) ?? (person.value(forKey: "name") as? String), !dName.isEmpty {
-                    selfIdentities.insert(LocalDeviceDetector.normalizeName(dName))
-                }
-                if let rName = person.value(forKey: "realName") as? String, !rName.isEmpty {
-                    selfIdentities.insert(LocalDeviceDetector.normalizeName(rName))
-                }
-                continue
-            }
 
+        for person in people {
+            // Do NOT filter out `me == true`! In Sharing.framework, `me == true` indicates
+            // other devices signed into the same Apple ID (e.g., user's own iPhone/iPad), not this Mac.
             let model = (person.value(forKey: "model") as? String)
                 ?? (person.value(forKey: "secondaryName") as? String)
                 ?? ""
@@ -333,14 +471,7 @@ public final class LiveRecipientDiscovery: ObservableObject {
             }
         }
 
-        for (ep, recipient) in recipientMap {
-            if LocalDeviceDetector.isSelfName(recipient.displayName, selfIdentities: selfIdentities) {
-                recipientMap.removeValue(forKey: ep)
-                knownCertificates.removeValue(forKey: ep)
-                updated = true
-                continue
-            }
-
+        for (key, recipient) in recipientMap {
             let nameLower = recipient.displayName.lowercased()
             let direct = nodeModelCache[nameLower]
             let fuzzy = direct ?? nodeModelCache.first(where: { k, _ in
@@ -361,11 +492,12 @@ public final class LiveRecipientDiscovery: ObservableObject {
                     certificate: recipient.certificate,
                     lastSeen: recipient.lastSeen
                 )
-                recipientMap[ep] = updatedRecipient
+                recipientMap[key] = updatedRecipient
                 updated = true
             }
         }
 
+        updateDiscoveryHint()
         if updated {
             publishRecipients()
         }
@@ -382,36 +514,59 @@ public final class LiveRecipientDiscovery: ObservableObject {
             guard let self else { return }
             Task { @MainActor in
                 guard self.isStarted else { return }
-                var currentEndpoints = Set<NWEndpoint>()
+                var nextEndpoints: [String: NWEndpoint] = [:]
 
                 for result in results {
                     let awdl = result.interfaces.first(where: { $0.name == "awdl0" })
                     let ep: NWEndpoint
+                    let isAwdl: Bool
                     if case .service(let name, let type, let domain, let iface) = result.endpoint {
                         let chosenIface = (iface?.name == "awdl0" ? iface : awdl) ?? iface
                         ep = .service(name: name, type: type, domain: domain, interface: chosenIface)
+                        isAwdl = (chosenIface?.name == "awdl0")
                     } else {
                         ep = result.endpoint
+                        isAwdl = false
                     }
 
-                    currentEndpoints.insert(ep)
-                    if self.recipientMap[ep] == nil && self.activeConnections[ep] == nil {
-                        self.probeEndpoint(ep)
-                    }
-                }
-
-                // Remove stale endpoints based on service name
-                let currentNames = Set(currentEndpoints.compactMap { ep -> String? in
-                    if case .service(let name, _, _, _) = ep { return name }
-                    return nil
-                })
-
-                for ep in Array(self.recipientMap.keys) {
-                    if case .service(let name, _, _, _) = ep, !currentNames.contains(name) {
-                        self.recipientMap.removeValue(forKey: ep)
-                        self.knownCertificates.removeValue(forKey: ep)
+                    let key = self.serviceKey(for: ep)
+                    if let existing = nextEndpoints[key] {
+                        if case .service(_, _, _, let existingIface) = existing, existingIface?.name == "awdl0" {
+                            continue
+                        }
+                        if isAwdl {
+                            nextEndpoints[key] = ep
+                        }
+                    } else {
+                        nextEndpoints[key] = ep
                     }
                 }
+
+                discoveryLogger.info("Bonjour browse updated: \(nextEndpoints.count) active service(s)")
+                self.knownEndpoints = nextEndpoints
+
+                // Remove stale endpoints based on canonical service key
+                let validKeys = Set(nextEndpoints.keys)
+                let trackedKeys = Set(self.activeConnections.keys)
+                    .union(self.retryWorkItems.keys)
+                    .union(self.recipientMap.keys)
+                    .union(self.knownCertificates.keys)
+                    .union(self.probeAttempts.keys)
+                    .union(self.rejectedServiceKeys)
+                    .union(self.selfServiceKeys)
+
+                for key in trackedKeys where !validKeys.contains(key) {
+                    self.activeConnections.removeValue(forKey: key)?.cancel()
+                    self.retryWorkItems.removeValue(forKey: key)?.cancel()
+                    self.recipientMap.removeValue(forKey: key)
+                    self.knownCertificates.removeValue(forKey: key)
+                    self.probeAttempts.removeValue(forKey: key)
+                    self.rejectedServiceKeys.remove(key)
+                    self.selfServiceKeys.remove(key)
+                }
+
+                self.probeUnresolvedEndpoints(includeRejected: false)
+                self.updateDiscoveryHint()
                 self.publishRecipients()
             }
         }
@@ -422,7 +577,11 @@ public final class LiveRecipientDiscovery: ObservableObject {
                 switch state {
                 case .ready:
                     self.isSearching = true
-                case .failed, .cancelled:
+                    discoveryLogger.info("NWBrowser ready for _airdrop._tcp")
+                case .failed:
+                    self.isSearching = false
+                    discoveryLogger.error("NWBrowser failed")
+                case .cancelled:
                     self.isSearching = false
                 default:
                     break
@@ -433,7 +592,24 @@ public final class LiveRecipientDiscovery: ObservableObject {
         b.start(queue: .main)
     }
 
-    private func probeEndpoint(_ endpoint: NWEndpoint) {
+    private func probeUnresolvedEndpoints(includeRejected: Bool) {
+        for (key, ep) in knownEndpoints {
+            guard !selfServiceKeys.contains(key),
+                  recipientMap[key] == nil,
+                  activeConnections[key] == nil else {
+                continue
+            }
+            if !includeRejected && rejectedServiceKeys.contains(key) {
+                continue
+            }
+            retryWorkItems.removeValue(forKey: key)?.cancel()
+            probeEndpoint(key: key, endpoint: ep)
+        }
+    }
+
+    private func probeEndpoint(key: String, endpoint: NWEndpoint) {
+        retryWorkItems.removeValue(forKey: key)?.cancel()
+
         let tls = NWProtocolTLS.Options()
         let certBox = DiscoveryCertBox()
         sec_protocol_options_set_min_tls_protocol_version(tls.securityProtocolOptions, .TLSv12)
@@ -454,22 +630,29 @@ public final class LiveRecipientDiscovery: ObservableObject {
         }
 
         let connection = NWConnection(to: endpoint, using: params)
-        activeConnections[endpoint] = connection
+        activeConnections[key] = connection
 
         connection.stateUpdateHandler = { [weak self, weak connection] state in
             guard let self, let connection else { return }
             Task { @MainActor in
-                guard self.isStarted, self.activeConnections[endpoint] === connection else { return }
+                guard self.isStarted, self.activeConnections[key] === connection else { return }
                 switch state {
                 case .ready:
                     if LocalDeviceDetector.isSelfConnection(connection.currentPath) {
+                        discoveryLogger.info("Filtered self connection over local interface")
+                        self.selfServiceKeys.insert(key)
                         connection.cancel()
-                        self.activeConnections.removeValue(forKey: endpoint)
+                        self.activeConnections.removeValue(forKey: key)
+                        self.updateDiscoveryHint()
                         return
                     }
-                    self.sendDiscoverRequest(connection, endpoint: endpoint, certBox: certBox)
-                case .failed, .cancelled:
-                    self.activeConnections.removeValue(forKey: endpoint)
+                    self.sendDiscoverRequest(connection, key: key, endpoint: endpoint, certBox: certBox)
+                case .failed:
+                    discoveryLogger.info("Probe connection failed; scheduling retry")
+                    self.activeConnections.removeValue(forKey: key)
+                    self.scheduleRetry(for: key)
+                case .cancelled:
+                    self.activeConnections.removeValue(forKey: key)
                 default:
                     break
                 }
@@ -480,52 +663,99 @@ public final class LiveRecipientDiscovery: ObservableObject {
 
         // 8-second probe timeout
         DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self, weak connection] in
-            guard let self, let connection, self.activeConnections[endpoint] === connection else { return }
-            connection.cancel()
-            self.activeConnections.removeValue(forKey: endpoint)
+            guard let self, let connection else { return }
+            Task { @MainActor in
+                guard self.isStarted, self.activeConnections[key] === connection else { return }
+                discoveryLogger.info("Probe connection timed out after 8s; scheduling retry")
+                connection.cancel()
+                self.activeConnections.removeValue(forKey: key)
+                self.scheduleRetry(for: key)
+            }
         }
     }
 
-    private func sendDiscoverRequest(_ connection: NWConnection, endpoint: NWEndpoint, certBox: DiscoveryCertBox) {
+    private func scheduleRetry(for key: String) {
+        guard isStarted,
+              knownEndpoints[key] != nil,
+              !selfServiceKeys.contains(key),
+              recipientMap[key] == nil,
+              activeConnections[key] == nil else {
+            return
+        }
+
+        let delays: [TimeInterval] = [1.5, 3.0, 5.0, 8.0]
+        let attempt = probeAttempts[key] ?? 0
+        guard attempt < delays.count else {
+            discoveryLogger.info("Exhausted backoff probe retries (count: \(attempt))")
+            return
+        }
+
+        probeAttempts[key] = attempt + 1
+        let delay = delays[attempt]
+        discoveryLogger.info("Scheduling probe retry #\(attempt + 1) in \(delay)s")
+
+        retryWorkItems.removeValue(forKey: key)?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            Task { @MainActor in
+                self.retryWorkItems.removeValue(forKey: key)
+                guard self.isStarted,
+                      let ep = self.knownEndpoints[key],
+                      !self.selfServiceKeys.contains(key),
+                      self.recipientMap[key] == nil,
+                      self.activeConnections[key] == nil else {
+                    return
+                }
+                self.probeEndpoint(key: key, endpoint: ep)
+            }
+        }
+        retryWorkItems[key] = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+
+    private func sendDiscoverRequest(_ connection: NWConnection, key: String, endpoint: NWEndpoint, certBox: DiscoveryCertBox) {
         do {
             let requestData = try DiscoverReply.request()
-            connection.send(content: requestData, completion: .contentProcessed { [weak self] error in
-                guard let self else { return }
+            connection.send(content: requestData, completion: .contentProcessed { [weak self, weak connection] error in
+                guard let self, let connection else { return }
                 Task { @MainActor in
-                    guard self.isStarted, error == nil else {
-                        self.activeConnections.removeValue(forKey: endpoint)?.cancel()
+                    guard self.isStarted, self.activeConnections[key] === connection else { return }
+                    if error != nil {
+                        discoveryLogger.info("Failed sending /Discover request; scheduling retry")
+                        self.activeConnections.removeValue(forKey: key)?.cancel()
+                        self.scheduleRetry(for: key)
                         return
                     }
-                    self.readDiscoverResponse(connection, endpoint: endpoint, decoder: DiscoverHTTPDecoder(), certBox: certBox)
+                    self.readDiscoverResponse(connection, key: key, endpoint: endpoint, decoder: DiscoverHTTPDecoder(), certBox: certBox)
                 }
             })
         } catch {
-            activeConnections.removeValue(forKey: endpoint)?.cancel()
+            activeConnections.removeValue(forKey: key)?.cancel()
+            scheduleRetry(for: key)
         }
     }
 
-    private func readDiscoverResponse(_ connection: NWConnection, endpoint: NWEndpoint, decoder: DiscoverHTTPDecoder, certBox: DiscoveryCertBox) {
+    private func readDiscoverResponse(_ connection: NWConnection, key: String, endpoint: NWEndpoint, decoder: DiscoverHTTPDecoder, certBox: DiscoveryCertBox) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self, weak connection] data, _, eof, error in
             guard let self, let connection else { return }
             Task { @MainActor in
-                guard self.isStarted, self.activeConnections[endpoint] === connection else { return }
+                guard self.isStarted, self.activeConnections[key] === connection else { return }
                 var curDecoder = decoder
 
                 do {
                     if let response = try curDecoder.append(data ?? Data(), eof: eof) {
                         connection.cancel()
-                        self.activeConnections.removeValue(forKey: endpoint)
+                        self.activeConnections.removeValue(forKey: key)
 
                         guard response.status == 200,
                               let plist = (try? PropertyListSerialization.propertyList(from: response.body, format: nil)) as? [String: Any],
                               let name = plist["ReceiverComputerName"] as? String, !name.isEmpty,
                               let cert = certBox.data else {
-                            return
-                        }
-
-                        // Filter out self-device (hide own Mac)
-                        if LocalDeviceDetector.isSelfName(name, selfIdentities: self.selfIdentities) ||
-                           LocalDeviceDetector.isSelfConnection(connection.currentPath) {
+                            self.rejectedServiceKeys.insert(key)
+                            self.recipientMap.removeValue(forKey: key)
+                            discoveryLogger.info("Endpoint declined /Discover (status: \(response.status)); likely Contacts Only mode")
+                            self.updateDiscoveryHint()
+                            self.publishRecipients()
                             return
                         }
 
@@ -542,6 +772,19 @@ public final class LiveRecipientDiscovery: ObservableObject {
                             mediaCapabilities: plist["ReceiverMediaCapabilities"]
                         )
 
+                        // Filter out local Mac ONLY (never filter iPhone/iPad sharing the same user name or Apple ID)
+                        if LocalDeviceDetector.isSelfConnection(connection.currentPath) ||
+                           (kind != .iPhone && kind != .iPad && LocalDeviceDetector.isSelfName(name)) {
+                            discoveryLogger.info("Filtered self Mac device after /Discover")
+                            self.selfServiceKeys.insert(key)
+                            self.updateDiscoveryHint()
+                            return
+                        }
+
+                        self.rejectedServiceKeys.remove(key)
+                        self.probeAttempts.removeValue(forKey: key)
+                        self.retryWorkItems.removeValue(forKey: key)?.cancel()
+
                         let recipient = Recipient(
                             id: UUID().uuidString,
                             displayName: name,
@@ -552,26 +795,38 @@ public final class LiveRecipientDiscovery: ObservableObject {
                             lastSeen: Date()
                         )
 
-                        self.knownCertificates[endpoint] = cert
-                        self.recipientMap[endpoint] = recipient
+                        self.knownCertificates[key] = cert
+                        self.recipientMap[key] = recipient
+                        discoveryLogger.info("Discovered recipient kind: \(kind.rawValue, privacy: .public), active count: \(self.recipientMap.count)")
+                        self.updateDiscoveryHint()
                         self.publishRecipients()
                     } else if error != nil {
                         connection.cancel()
-                        self.activeConnections.removeValue(forKey: endpoint)
+                        self.activeConnections.removeValue(forKey: key)
+                        self.scheduleRetry(for: key)
                     } else {
-                        self.readDiscoverResponse(connection, endpoint: endpoint, decoder: curDecoder, certBox: certBox)
+                        self.readDiscoverResponse(connection, key: key, endpoint: endpoint, decoder: curDecoder, certBox: certBox)
                     }
                 } catch {
                     connection.cancel()
-                    self.activeConnections.removeValue(forKey: endpoint)
+                    self.activeConnections.removeValue(forKey: key)
+                    self.scheduleRetry(for: key)
                 }
             }
         }
     }
 
+    private func updateDiscoveryHint() {
+        if !recipientMap.isEmpty {
+            discoveryHint = .none
+        } else if !rejectedServiceKeys.isEmpty || wakePeopleCount > 0 {
+            discoveryHint = .contactsOnlyLikely
+        } else {
+            discoveryHint = .searching
+        }
+    }
+
     private func publishRecipients() {
-        self.recipients = recipientMap.values
-            .filter { !LocalDeviceDetector.isSelfName($0.displayName, selfIdentities: self.selfIdentities) }
-            .sorted { $0.displayName < $1.displayName }
+        self.recipients = recipientMap.values.sorted { $0.displayName < $1.displayName }
     }
 }

@@ -8,6 +8,7 @@ public final class WheelModel: ObservableObject {
     @Published public var page: Int = 0
     @Published public var hoveredIndex: Int? = nil
     @Published public var isSearching: Bool = true
+    @Published public var discoveryHint: DiscoveryHint = .searching
 
     public var onSelectRecipient: ((Recipient) -> Void)?
     public var onCancel: (() -> Void)?

@@ -111,6 +111,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openItem.target = self
         menu.addItem(openItem)
 
+        let refreshItem = NSMenuItem(
+            title: "重新掃描附近裝置",
+            action: #selector(refreshDiscovery),
+            keyEquivalent: "r"
+        )
+        refreshItem.target = self
+        menu.addItem(refreshItem)
+
         menu.addItem(NSMenuItem.separator())
 
         let fdaItem = NSMenuItem(
@@ -165,6 +173,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func selectFiles() {
         Task { @MainActor in
             AppController.shared.selectFilesAndOpenWheel()
+        }
+    }
+
+    @objc func refreshDiscovery() {
+        Task { @MainActor in
+            AppController.shared.refreshDiscovery()
         }
     }
 

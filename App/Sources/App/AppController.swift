@@ -45,14 +45,18 @@ public final class AppController: ObservableObject {
     }
 
     private func setupBindings() {
-        // Forward discovered recipients to WheelOverlay
-        discovery.$recipients
+        // Forward discovered recipients and discovery status to WheelOverlay
+        Publishers.CombineLatest3(discovery.$recipients, discovery.$isSearching, discovery.$discoveryHint)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] list in
+            .sink { [weak self] list, searching, hint in
                 guard let self else { return }
-                self.overlay.updateRecipients(list, isSearching: self.discovery.isSearching)
+                self.overlay.updateRecipients(list, isSearching: searching, hint: hint)
             }
             .store(in: &cancellables)
+
+        overlay.onClose = { [weak self] in
+            self?.discovery.setWheelActive(false)
+        }
 
         // Handle sending when user drops/clicks on a recipient sector
         overlay.onSendToRecipient = { [weak self] payload, recipient in
@@ -77,10 +81,25 @@ public final class AppController: ObservableObject {
     }
 
     public func showWheel(at point: NSPoint, payload: TransferPayload) {
+        let urls: [URL]
         if case .files(let items) = payload {
-            discovery.updatePayloadURLs(items.map(\.url))
+            urls = items.map(\.url)
+        } else {
+            urls = []
         }
-        overlay.show(at: point, payload: payload, recipients: discovery.recipients)
+        discovery.setWheelActive(true)
+        discovery.pulseDiscovery(with: urls)
+        overlay.show(
+            at: point,
+            payload: payload,
+            recipients: discovery.recipients,
+            isSearching: discovery.isSearching,
+            hint: discovery.discoveryHint
+        )
+    }
+
+    public func refreshDiscovery() {
+        discovery.refreshDiscovery()
     }
 
     public func selectFilesAndOpenWheel() {

@@ -308,6 +308,14 @@ public struct WheelView: View {
                         .font(.system(size: 11, weight: .regular))
                         .foregroundColor(WheelTheme.secondaryTextColor(for: colorScheme))
                 }
+            } else if model.recipients.isEmpty && model.discoveryHint == .contactsOnlyLikely {
+                Text("偵測到附近裝置但尚未開放接收 · 請將對方 AirDrop 設為「所有人（10 分鐘）」")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(WheelTheme.secondaryTextColor(for: colorScheme))
+            } else if model.recipients.isEmpty {
+                Text("正在喚醒並搜尋附近裝置… · 請確認對方螢幕已解鎖且開啟「所有人（10 分鐘）」")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(WheelTheme.secondaryTextColor(for: colorScheme))
             } else {
                 Text("拖曳至裝置並放手即傳送 · 移回中心或按 Esc 取消")
                     .font(.system(size: 11, weight: .medium))

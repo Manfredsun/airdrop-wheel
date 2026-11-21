@@ -119,6 +119,7 @@ public final class WheelOverlay: ObservableObject {
 
     private var wheelCenterScreenPoint: NSPoint = .zero
     public var onSendToRecipient: ((TransferPayload, Recipient) -> Void)?
+    public var onClose: (() -> Void)?
 
     public init() {
         model.onSelectRecipient = { [weak self] recipient in
@@ -166,7 +167,7 @@ public final class WheelOverlay: ObservableObject {
         self.hostView = host
     }
 
-    public func show(at screenPoint: NSPoint, payload: TransferPayload, recipients: [Recipient]) {
+    public func show(at screenPoint: NSPoint, payload: TransferPayload, recipients: [Recipient], isSearching: Bool = true, hint: DiscoveryHint = .searching) {
         let screen = NSScreen.screens.first(where: { NSPointInRect(screenPoint, $0.frame) }) ?? NSScreen.main ?? NSScreen.screens[0]
         ensurePanel(for: screen)
 
@@ -174,6 +175,8 @@ public final class WheelOverlay: ObservableObject {
 
         model.payload = payload
         model.recipients = recipients
+        model.isSearching = isSearching
+        model.discoveryHint = hint
         model.page = 0
         model.hoveredIndex = nil
 
@@ -204,14 +207,16 @@ public final class WheelOverlay: ObservableObject {
         isOpen = true
     }
 
-    public func updateRecipients(_ list: [Recipient], isSearching: Bool) {
+    public func updateRecipients(_ list: [Recipient], isSearching: Bool, hint: DiscoveryHint = .none) {
         model.recipients = list
         model.isSearching = isSearching
+        model.discoveryHint = hint
     }
 
     public func close() {
         guard isOpen, let p = panel else { return }
         isOpen = false
+        onClose?()
         model.hoveredIndex = nil
 
         withAnimation(.easeOut(duration: 0.12)) {

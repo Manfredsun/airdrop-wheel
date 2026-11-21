@@ -30,6 +30,10 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>AirDrop Wheel 需要存取區域網絡以探索附近的 AirDrop 接收端。</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_airdrop._tcp</string>
+	</array>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>AirDrop Wheel 使用藍牙輔助探索附近的 Apple 裝置。</string>
 	<key>NSDesktopFolderUsageDescription</key>
